@@ -1,10 +1,88 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 
 type Language = "en" | "ru";
 
+const analysisSchema = z.object({
+  profileType: z.string(),
+  profileSummary: z.string(),
+  whyThisResult: z.array(z.string()),
+  keyStrengths: z.array(z.string()),
+  workStyle: z.string(),
+  bestFitRoles: z.array(
+    z.object({
+      role: z.string(),
+      explanation: z.string(),
+    })
+  ),
+  potentialMismatches: z.array(z.string()),
+  recommendedNextStep: z.string(),
+});
+
+const responseJsonSchema = {
+  type: "object",
+  properties: {
+    profileType: { type: "string" },
+    profileSummary: { type: "string" },
+    whyThisResult: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 3,
+      maxItems: 3,
+    },
+    keyStrengths: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 3,
+      maxItems: 3,
+    },
+    workStyle: { type: "string" },
+    bestFitRoles: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          role: { type: "string" },
+          explanation: { type: "string" },
+        },
+        required: ["role", "explanation"],
+        additionalProperties: false,
+      },
+      minItems: 2,
+      maxItems: 3,
+    },
+    potentialMismatches: {
+      type: "array",
+      items: { type: "string" },
+      minItems: 2,
+      maxItems: 2,
+    },
+    recommendedNextStep: { type: "string" },
+  },
+  required: [
+    "profileType",
+    "profileSummary",
+    "whyThisResult",
+    "keyStrengths",
+    "workStyle",
+    "bestFitRoles",
+    "potentialMismatches",
+    "recommendedNextStep",
+  ],
+  additionalProperties: false,
+} as const;
+
 export async function POST(req: NextRequest) {
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1800));
+    if (!process.env.GEMINI_API_KEY) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY is missing in .env.local" },
+        { status: 500 }
+      );
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
     const body = await req.json();
     const answers = body.answers as string[];
@@ -22,383 +100,169 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const combinedText = answers.join(" ").toLowerCase();
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
 
-    const entrepreneurKeywords = [
-      "freedom",
-      "independence",
-      "startup",
-      "build",
-      "building",
-      "create",
-      "creating",
-      "own",
-      "founder",
-      "business",
-      "idea",
-      "ideas",
-      "autonomy",
-      "impact",
-      "vision",
-      "свобода",
-      "независимость",
-      "стартап",
-      "строить",
-      "создавать",
-      "создание",
-      "своё",
-      "основатель",
-      "бизнес",
-      "идея",
-      "идеи",
-      "автономия",
-      "влияние",
-      "смысл",
-      "проект",
-    ];
+    const formattedAnswers = answers
+      .map((answer, index) => `${index + 1}. ${answer}`)
+      .join("\n");
 
-    const structuredKeywords = [
-      "structure",
-      "structured",
-      "stability",
-      "stable",
-      "process",
-      "systems",
-      "system",
-      "clear",
-      "clarity",
-      "organized",
-      "predictable",
-      "planning",
-      "security",
-      "routine",
-      "структура",
-      "стабильность",
-      "стабильный",
-      "процесс",
-      "система",
-      "системы",
-      "понятно",
-      "ясность",
-      "организованность",
-      "предсказуемость",
-      "планирование",
-      "безопасность",
-      "рутина",
-      "четкие",
-      "чёткие",
-    ];
+    const prompt =
+      language === "ru"
+        ? `
+    Ты — Mentra, точный и наблюдательный AI, который помогает человеку лучше понять себя через работу.
 
-    const peopleKeywords = [
-      "people",
-      "team",
-      "teams",
-      "clients",
-      "help",
-      "helping",
-      "support",
-      "communication",
-      "communicating",
-      "relationships",
-      "community",
-      "collaboration",
-      "collaborative",
-      "lead",
-      "leading",
-      "mentoring",
-      "люди",
-      "команда",
-      "команды",
-      "клиенты",
-      "помощь",
-      "помогать",
-      "поддержка",
-      "общение",
-      "коммуникация",
-      "отношения",
-      "сообщество",
-      "сотрудничество",
-      "вести",
-      "лидерство",
-      "менторство",
-    ];
+    Твоя задача — не просто описать, а выявить паттерны мышления, поведения и мотивации.
 
-    const countMatches = (keywords: string[]) => {
-      return keywords.reduce((count, keyword) => {
-        return combinedText.includes(keyword) ? count + 1 : count;
-      }, 0);
+    ВАЖНО:
+    - Не предполагай, что пользователь из IT
+    - Учитывай разные сферы: бизнес, образование, психология, креатив, операции и т.д.
+    - Не используй шаблонные фразы
+    - Не пиши как гороскоп
+    - Не льсти пользователю
+    - Пиши как умный человек, который внимательно прочитал ответы
+
+    СТИЛЬ:
+    - Конкретно
+    - Спокойно
+    - Без воды
+    - Без общих фраз
+    - С причинно-следственными связями ("потому что...", "это видно из того, что...")
+
+    ТРЕБОВАНИЯ К ОТВЕТУ:
+    - Верни ТОЛЬКО JSON
+    - Никакого текста вне JSON
+    - Пиши на русском
+
+    СТРУКТУРА:
+    - whyThisResult → объяснение, почему ты пришёл к этому выводу (3 пункта, с опорой на ответы)
+    - keyStrengths → не абстрактные, а поведенческие
+    - bestFitRoles → не только названия, но и логика, почему именно они
+    - potentialMismatches → где человеку будет плохо (реалистично)
+    - recommendedNextStep → конкретное действие, а не совет
+
+    Дополнительно:
+    - избегай банальных ролей без обоснования
+    - если ответы противоречивые — отрази это
+    - Избегай формулировок, которые могли бы подойти любому человеку
+
+    Ответы пользователя:
+    ${formattedAnswers}
+    `
+        : `
+        You are Mentra, a sharp and perceptive AI that helps a person understand themselves through their work patterns.
+
+        Your goal is not just to describe, but to infer thinking patterns, behavior, and motivation.
+
+        IMPORTANT:
+        - Do not assume the user is in tech
+        - Consider a wide range of domains (business, education, psychology, creative, operations, etc.)
+        - Avoid generic phrasing
+        - Do not sound like a horoscope
+        - Do not flatter
+        - Write like a thoughtful human who carefully read the answers
+
+        STYLE:
+        - Specific
+        - Calm
+        - No fluff
+        - No generic advice
+        - Use causal reasoning ("this suggests...", "this is visible from...")
+
+        OUTPUT RULES:
+        - Return ONLY JSON
+        - No text outside JSON
+        - Write in English
+
+        STRUCTURE:
+        - whyThisResult → explain why you reached this conclusion (3 points, grounded in answers)
+        - keyStrengths → behavioral, not abstract
+        - bestFitRoles → include reasoning, not just titles
+        - potentialMismatches → where the user may struggle (realistically)
+        - recommendedNextStep → one concrete action, not vague advice
+
+        Additionally:
+        - avoid defaulting to generic roles without justification
+        - reflect contradictions if present in answers
+        - Avoid statements that could apply to almost anyone
+
+        User answers:
+        ${formattedAnswers}
+        `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema,
+      },
+    });
+
+    const text = response.text;
+
+    if (!text) {
+      return NextResponse.json(
+        { error: "Empty response from Gemini" },
+        { status: 500 }
+      );
+    }
+
+    let raw: unknown;
+    try {
+      raw = JSON.parse(text);
+    } catch (e) {
+      console.error("Gemini returned non-JSON text:", text);
+      return NextResponse.json(
+        { error: "Gemini returned non-JSON text" },
+        { status: 500 }
+      );
+    }
+
+    // Мягкая нормализация на случай, если модель слегка отклонилась
+    const normalized = {
+      profileType: String((raw as any)?.profileType ?? ""),
+      profileSummary: String((raw as any)?.profileSummary ?? ""),
+      whyThisResult: Array.isArray((raw as any)?.whyThisResult)
+        ? (raw as any).whyThisResult.map(String).slice(0, 3)
+        : [],
+      keyStrengths: Array.isArray((raw as any)?.keyStrengths)
+        ? (raw as any).keyStrengths.map(String).slice(0, 3)
+        : [],
+      workStyle: String((raw as any)?.workStyle ?? ""),
+      bestFitRoles: Array.isArray((raw as any)?.bestFitRoles)
+        ? (raw as any).bestFitRoles.slice(0, 3).map((item: any) => ({
+            role: String(item?.role ?? ""),
+            explanation: String(item?.explanation ?? ""),
+          }))
+        : [],
+      potentialMismatches: Array.isArray((raw as any)?.potentialMismatches)
+        ? (raw as any).potentialMismatches.map(String).slice(0, 2)
+        : [],
+      recommendedNextStep: String((raw as any)?.recommendedNextStep ?? ""),
     };
 
-    const entrepreneurScore = countMatches(entrepreneurKeywords);
-    const structuredScore = countMatches(structuredKeywords);
-    const peopleScore = countMatches(peopleKeywords);
+    const parsed = analysisSchema.safeParse(normalized);
 
-    let result;
+    if (!parsed.success) {
+      console.error("Gemini validation error:", parsed.error.flatten());
+      console.error("Gemini raw text:", text);
 
-    if (
-      entrepreneurScore >= structuredScore &&
-      entrepreneurScore >= peopleScore
-    ) {
-      result =
-        language === "ru"
-          ? {
-              profileType: "Ориентация на создание и инициативу",
-              profileSummary:
-                "Похоже, тебя мотивируют автономия, ощущение владения результатом и возможность создавать что-то значимое. Твои ответы показывают, что тебя заряжают инициатива, самостоятельность мышления и работа, где можно влиять на направление, а не только выполнять чужие указания.",
-              whyThisResult: [
-                "В твоих ответах повторяются сигналы про свободу, самостоятельность и ощущение ownership.",
-                "Похоже, тебя больше заряжает создание и формирование чего-то нового, чем просто выполнение заранее заданных задач.",
-                "Есть признаки того, что тебе ближе инициатива и гибкость, чем жёсткая структура.",
-              ],
-              keyStrengths: [
-                "Самостоятельность и инициативность",
-                "Сильное чувство ответственности за результат",
-                "Умение мыслить через идеи, направления и возможности",
-              ],
-              workStyle:
-                "С высокой вероятностью тебе лучше всего подходят гибкие, быстро меняющиеся среды, где можно принимать решения, пробовать новое и видеть прямое влияние своих действий.",
-              bestFitRoles: [
-                {
-                  role: "Основатель / предприниматель",
-                  explanation:
-                    "Твои ответы указывают на высокую мотивацию к автономии, ответственности и созданию чего-то с нуля.",
-                },
-                {
-                  role: "Создатель продукта / product builder",
-                  explanation:
-                    "Тебе могут подойти роли, где нужно быстро превращать идеи в конкретный продукт или сервис.",
-                },
-                {
-                  role: "Business development / early-stage operator",
-                  explanation:
-                    "Есть ощущение, что тебе близка работа, где нужно формировать направление, тестировать гипотезы и двигаться в неоднозначной среде.",
-                },
-              ],
-              potentialMismatches: [
-                "Слишком жёсткие среды, где почти нет пространства для инициативы",
-                "Повторяющиеся исполнительские роли без ощущения ownership",
-              ],
-              recommendedNextStep:
-                "Выбери одну идею или направление, к которому ты постоянно возвращаешься, и протестируй её в маленьком конкретном формате уже на этой неделе: лендинг, разговор с потенциальным пользователем или простой прототип.",
-            }
-          : {
-              profileType: "Builder-oriented",
-              profileSummary:
-                "You appear motivated by autonomy, ownership, and the chance to build something meaningful. Your answers suggest you are energized by initiative, original thinking, and work where you can shape direction rather than only follow it.",
-              whyThisResult: [
-                "Your answers repeatedly point toward autonomy, ownership, and freedom.",
-                "You seem more energized by creating or shaping things than by only executing predefined tasks.",
-                "There are signals that you may prefer initiative and flexibility over rigid structure.",
-              ],
-              keyStrengths: [
-                "Self-direction and initiative",
-                "Strong ownership mindset",
-                "Ability to think in terms of ideas, direction, and opportunity",
-              ],
-              workStyle:
-                "You are likely to do your best in flexible, fast-moving environments where you can make decisions, experiment, and have visible impact on outcomes.",
-              bestFitRoles: [
-                {
-                  role: "Startup Founder",
-                  explanation:
-                    "Your answers point toward high motivation for autonomy, ownership, and building from scratch.",
-                },
-                {
-                  role: "Product Builder",
-                  explanation:
-                    "You may thrive in roles where you can turn ideas into concrete products or services quickly.",
-                },
-                {
-                  role: "Business Development / Early-stage Operator",
-                  explanation:
-                    "You seem likely to enjoy shaping direction, testing opportunities, and moving across ambiguous, evolving work.",
-                },
-              ],
-              potentialMismatches: [
-                "Highly rigid environments with little room for initiative",
-                "Repetitive execution-only roles without ownership",
-              ],
-              recommendedNextStep:
-                "Choose one idea or direction you keep returning to and test it in a small, concrete way this week: a landing page, a user interview, or a simple prototype.",
-            };
-    } else if (
-      structuredScore >= entrepreneurScore &&
-      structuredScore >= peopleScore
-    ) {
-      result =
-        language === "ru"
-          ? {
-              profileType: "Ориентация на структуру и системность",
-              profileSummary:
-                "Твои ответы показывают, что для тебя важны ясность, стабильность и хорошо выстроенные системы. Похоже, ты лучше всего раскрываешься там, где ожидания понятны, работа организована, а прогресс достигается через продуманную структуру, а не через хаос.",
-              whyThisResult: [
-                "Твои ответы указывают на то, что тебе важны ясность, предсказуемость и сильные системы.",
-                "Похоже, тебе легче быть эффективной в среде с понятными ожиданиями и организованными процессами.",
-                "Есть признаки того, что слишком много хаоса и неопределённости может снижать твою эффективность.",
-              ],
-              keyStrengths: [
-                "Тяга к структуре и ясности",
-                "Надёжность и последовательность",
-                "Умение хорошо работать в организованных системах и процессах",
-              ],
-              workStyle:
-                "Скорее всего, тебе подходят среды, где цели, зоны ответственности и рабочие процессы чётко определены, а сильное исполнение важнее постоянной неопределённости.",
-              bestFitRoles: [
-                {
-                  role: "Специалист по операциям / operations",
-                  explanation:
-                    "Твои ответы указывают на хороший fit для ролей, где нужно поддерживать работу систем и улучшать процессы.",
-                },
-                {
-                  role: "Координатор или менеджер проектов",
-                  explanation:
-                    "Тебе могут подойти роли, где важны планирование, доведение до результата и координация разных частей работы.",
-                },
-                {
-                  role: "Бизнес-аналитик",
-                  explanation:
-                    "Структурная аналитическая роль может хорошо совпасть с твоей тягой к ясности, логике и организованному решению задач.",
-                },
-              ],
-              potentialMismatches: [
-                "Хаотичные среды без ясных приоритетов",
-                "Роли, где нужно постоянно импровизировать без достаточной опоры и структуры",
-              ],
-              recommendedNextStep:
-                "Посмотри на 2–3 роли, связанные с планированием, анализом или операциями, и сравни, какая из них лучше совпадает с тем уровнем структуры и ответственности, который тебе нужен.",
-            }
-          : {
-              profileType: "Structured / operator-oriented",
-              profileSummary:
-                "Your answers suggest that you value clarity, stability, and well-designed systems. You seem likely to perform best when expectations are clear, work is organized, and progress can be made through thoughtful structure rather than chaos.",
-              whyThisResult: [
-                "Your answers suggest that clarity, predictability, and strong systems matter to you.",
-                "You seem likely to do better in environments with defined expectations and organized workflows.",
-                "There are signs that too much ambiguity or chaos may reduce your effectiveness.",
-              ],
-              keyStrengths: [
-                "Preference for structure and clarity",
-                "Reliability and consistency",
-                "Ability to work well within organized systems and processes",
-              ],
-              workStyle:
-                "You likely thrive in environments where goals, responsibilities, and workflows are clearly defined, and where strong execution matters more than constant ambiguity.",
-              bestFitRoles: [
-                {
-                  role: "Operations Specialist",
-                  explanation:
-                    "Your answers suggest a good fit for keeping systems running smoothly and improving how work gets done.",
-                },
-                {
-                  role: "Project Coordinator / Project Manager",
-                  explanation:
-                    "You may be well suited to roles that require planning, follow-through, and coordination across moving parts.",
-                },
-                {
-                  role: "Business Analyst",
-                  explanation:
-                    "A structured, analytical role may suit your preference for clarity, logic, and organized problem-solving.",
-                },
-              ],
-              potentialMismatches: [
-                "Chaotic environments with no clear priorities",
-                "Roles that require constant improvisation without enough support or structure",
-              ],
-              recommendedNextStep:
-                "Look at 2–3 roles built around planning, analysis, or operations, and compare which one best matches the level of structure and responsibility you want.",
-            };
-    } else {
-      result =
-        language === "ru"
-          ? {
-              profileType: "Ориентация на людей и взаимодействие",
-              profileSummary:
-                "Твои ответы показывают, что люди, сотрудничество и человеческий эффект — важная часть того, как ты воспринимаешь работу. Похоже, тебя заряжают коммуникация, поддержка, построение доверия и работа, которая напрямую влияет на других.",
-              whyThisResult: [
-                "В твоих ответах повторяются сигналы про людей, взаимодействие и прямое влияние на других.",
-                "Похоже, тебя заряжает общение, поддержка и построение отношений.",
-                "Есть признаки того, что слишком изолированная работа может быть для тебя менее удовлетворяющей.",
-              ],
-              keyStrengths: [
-                "Сильная ориентация на людей",
-                "Коммуникация и умение выстраивать отношения",
-                "Вероятная способность поддерживать, направлять и эффективно сотрудничать",
-              ],
-              workStyle:
-                "Скорее всего, ты лучше всего раскрываешься в коллаборативных средах, где важны коммуникация, отношения и заметное человеческое влияние работы.",
-              bestFitRoles: [
-                {
-                  role: "Community Manager",
-                  explanation:
-                    "Твои ответы указывают на естественный fit для ролей, связанных с людьми, вовлечением и отношениями.",
-                },
-                {
-                  role: "Customer Success / Client Partner",
-                  explanation:
-                    "Тебе могут подойти роли, где важно помогать людям, выстраивать доверие и решать задачи через коммуникацию.",
-                },
-                {
-                  role: "People Operations / Talent role",
-                  explanation:
-                    "Ты можешь хорошо раскрыться в ролях, где центральную роль играют понимание людей и поддержка их роста.",
-                },
-              ],
-              potentialMismatches: [
-                "Сильно изолированная работа с минимальным общением",
-                "Роли, сфокусированные только на системах или задачах без человеческого взаимодействия",
-              ],
-              recommendedNextStep:
-                "Обрати внимание, в каких ситуациях ты чувствуешь себя наиболее полезной людям, и исследуй роли, где коммуникация, доверие и поддержка — это не побочная часть, а основа работы.",
-            }
-          : {
-              profileType: "People-oriented",
-              profileSummary:
-                "Your answers suggest that people, collaboration, and human impact are central to how you think about work. You seem likely to be energized by communication, support, trust-building, and work that directly affects others.",
-              whyThisResult: [
-                "Your answers repeatedly point toward people, collaboration, and direct human impact.",
-                "You seem energized by communication, support, and relationship-building.",
-                "There are signals that highly isolated work may be less satisfying for you.",
-              ],
-              keyStrengths: [
-                "Strong people orientation",
-                "Communication and relationship-building",
-                "Likely ability to support, guide, or collaborate effectively",
-              ],
-              workStyle:
-                "You probably do your best in collaborative environments where communication matters, relationships are important, and work has visible human impact.",
-              bestFitRoles: [
-                {
-                  role: "Community Manager",
-                  explanation:
-                    "Your answers suggest a natural fit for work built around people, engagement, and relationships.",
-                },
-                {
-                  role: "Customer Success / Client Partner",
-                  explanation:
-                    "You may be well suited to helping others, building trust, and solving problems through communication.",
-                },
-                {
-                  role: "People Operations / Talent Role",
-                  explanation:
-                    "You may thrive in roles where understanding people and supporting growth are central.",
-                },
-              ],
-              potentialMismatches: [
-                "Highly isolated work with minimal communication",
-                "Roles focused only on systems or tasks with little human interaction",
-              ],
-              recommendedNextStep:
-                "Notice which situations make you feel most useful to other people, then explore roles where communication, trust, and guidance are not side tasks but the core of the job.",
-            };
+      return NextResponse.json(
+        { error: "Gemini returned invalid structured JSON" },
+        { status: 500 }
+      );
     }
 
     console.log("assessment_completed", {
       language,
       answersLength: answers.length,
-      profileType: result.profileType,
+      profileType: parsed.data.profileType,
+      provider: "gemini",
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json(parsed.data);
   } catch (error) {
     console.error("Analyze error:", error);
 
