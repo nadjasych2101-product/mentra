@@ -258,27 +258,36 @@ export default function HomePage() {
     setError("");
   };
 
-  const handleSubmitFeedback = async () => {
-    try {
-      await fetch("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usefulnessFeedback,
-          deeperVersionInterest,
-          textFeedback,
-          profileType: result?.profileType ?? null,
-          language,
-        }),
-      });
+    const handleSubmitFeedback = async () => {
+      try {
+        const response = await fetch("/api/feedback", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            usefulnessFeedback,
+            deeperVersionInterest,
+            textFeedback,
+            profileType: result?.profileType ?? null,
+            language,
+          }),
+        });
 
-      setFeedbackSubmitted(true);
-    } catch (error) {
-      console.error("Feedback submit error:", error);
-    }
-  };
+        if (!response.ok) {
+          throw new Error("Failed to submit feedback");
+        }
+
+        setFeedbackSubmitted(true);
+      } catch (error) {
+        console.error("Feedback submit error:", error);
+        setError(
+          language === "ru"
+            ? "Не удалось отправить фидбек."
+            : "Failed to submit feedback."
+        );
+      }
+    };
 
   const handleRestart = () => {
     setStarted(false);
@@ -327,12 +336,6 @@ export default function HomePage() {
             <div className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium mb-4 bg-neutral-50">
               {result.profileType}
             </div>
-
-{result.provider && (
-  <p className="text-sm text-gray-500 mb-4">
-    Provider: {result.provider}
-  </p>
-)}
 
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               {t.yourMentraResult}
