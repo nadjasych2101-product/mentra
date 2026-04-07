@@ -328,6 +328,12 @@ export default function HomePage() {
               {result.profileType}
             </div>
 
+{result.provider && (
+  <p className="text-sm text-gray-500 mb-4">
+    Provider: {result.provider}
+  </p>
+)}
+
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               {t.yourMentraResult}
             </h1>

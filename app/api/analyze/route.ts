@@ -262,7 +262,10 @@ export async function POST(req: NextRequest) {
       provider: "gemini",
     });
 
-    return NextResponse.json(parsed.data);
+    return NextResponse.json({
+      ...parsed.data,
+      provider: "gemini",
+    });
   } catch (error) {
     console.error("Analyze error:", error);
 

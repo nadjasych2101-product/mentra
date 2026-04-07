@@ -1,4 +1,5 @@
 export type AnalysisResult = {
+  provider?: string;
   profileType: string;
   profileSummary: string;
   whyThisResult: string[];
