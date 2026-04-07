@@ -1,12 +1,26 @@
-export const questions = [
-  "What kinds of work or tasks make you lose track of time in a good way?",
-  "What kinds of work drain you, even if you can do them well?",
-  "When people come to you for help, what do they usually want from you?",
-  "Do you feel more energized by building something new, improving something existing, or supporting people directly?",
-  "Do you prefer clear structure and expectations, or freedom to figure things out yourself?",
-  "When you make decisions, do you rely more on logic, intuition, or a mix of both?",
-  "What matters more to you right now: stability, growth, autonomy, meaning, recognition, or income?",
-  "Describe an environment where you tend to do your best work.",
-  "Describe a role, task, or type of work you would not want to return to.",
-  "What direction are you currently drawn to, even if you are not fully sure yet?"
-];
+export const questionsByLanguage = {
+  en: [
+    "What kinds of work or tasks make you lose track of time in a good way?",
+    "What kinds of work drain you, even if you can do them well?",
+    "When people come to you for help, what do they usually want from you?",
+    "Do you feel more energized by building something new, improving something existing, or supporting people directly?",
+    "Do you prefer clear structure and expectations, or freedom to figure things out yourself?",
+    "When you make decisions, do you rely more on logic, intuition, or a mix of both?",
+    "What matters more to you right now: stability, growth, autonomy, meaning, recognition, or income?",
+    "Describe an environment where you tend to do your best work.",
+    "Describe a role, task, or type of work you would not want to return to.",
+    "What direction are you currently drawn to, even if you are not fully sure yet?",
+  ],
+  ru: [
+    "Какие задачи или тип работы настолько увлекают тебя, что ты теряешь счёт времени — в хорошем смысле?",
+    "Какая работа тебя выматывает, даже если у тебя получается делать её хорошо?",
+    "Когда люди обращаются к тебе за помощью, чего они обычно от тебя хотят?",
+    "Что тебя больше заряжает: создавать что-то новое, улучшать уже существующее или напрямую помогать людям?",
+    "Тебе комфортнее работать в понятной структуре и с ясными ожиданиями или когда есть свобода самой разбираться, как лучше действовать?",
+    "Когда ты принимаешь решения, ты больше опираешься на логику, интуицию или на сочетание обоих?",
+    "Что для тебя сейчас важнее: стабильность, рост, автономия, смысл, признание или доход?",
+    "Опиши среду, в которой ты обычно показываешь лучший результат.",
+    "Опиши роль, задачу или тип работы, к которому тебе точно не хочется возвращаться.",
+    "К какому направлению тебя сейчас тянет, даже если полной уверенности пока нет?",
+  ],
+} as const;
