@@ -8,6 +8,7 @@ export type AnalysisResult = {
     explanation: string;
   }[];
   potentialMismatches: string[];
+  recommendedNextStep: string;
 
   actionPlan: {
     immediate: string[];
