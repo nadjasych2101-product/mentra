@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { questionsByLanguage } from "@/data/questions";
 import type { AnalysisResult } from "@/lib/types";
 
 type Language = "en" | "ru";
+type ViewState = "landing" | "quiz" | "loading" | "result";
 
 const ui = {
   en: {
@@ -14,7 +15,11 @@ const ui = {
       "Mentra asks you a short set of questions, then turns your answers into a practical career reflection: your strengths, work style, likely mismatches, and role directions worth exploring.",
     startAssessment: "Start assessment",
     seeHowItWorks: "See how it works",
-    bullets: ["10 short questions", "Takes around 3–5 minutes", "No sign-up needed"],
+    bullets: [
+      "10 short questions",
+      "Takes around 3–5 minutes",
+      "No sign-up needed",
+    ],
     whatYouGet: "What you get",
     profileSummary: "Profile Summary",
     bestFitRoles: "Best-Fit Roles",
@@ -50,6 +55,7 @@ const ui = {
     workStyle: "Work Style",
     potentialMismatches: "Potential Mismatches",
     tryAgain: "Try again",
+    backToStart: "Back to start",
     backToTop: "Back to top",
     loadingTitle: "Analyzing your responses",
     loadingText:
@@ -79,128 +85,821 @@ const ui = {
     thanksFeedback: "Thanks for your feedback.",
     thanksFeedbackText:
       "This helps improve Mentra and shape the deeper version.",
+    languageChangeWarning:
+      "Changing language will reset your progress. Continue?",
+    exitQuizWarning: "Are you sure you want to exit? Your progress will be lost.",
+    aiUnavailableNote: "AI service is temporarily unavailable. Showing basic analysis.",
   },
-    ru: {
-      brand: "Mentra",
-      heroTitle: "Найди работу, которая действительно подходит тебе по мышлению и стилю работы",
-      heroText:
-        "Mentra задаёт короткий набор вопросов и превращает ответы в практический карьерный разбор: твои сильные стороны, стиль работы, возможные несовпадения и направления ролей, которые могут тебе подойти.",
-      startAssessment: "Начать",
-      seeHowItWorks: "Как это работает",
-      bullets: ["10 коротких вопросов", "Занимает около 3–5 минут", "Без регистрации"],
-      whatYouGet: "Что ты получишь",
-      profileSummary: "Краткий профиль",
-      bestFitRoles: "Подходящие роли",
-      recommendedNextStep: "Следующий шаг",
-      whatYouGetSummary:
-        "Короткое и понятное описание того, как ты подходишь к работе и что, скорее всего, тебя драйвит.",
-      whatYouGetRoles:
-        "Первый взгляд на типы ролей и рабочих сред, которые могут тебе подойти.",
-      whatYouGetNextStep:
-        "Один практический следующий шаг вместо размытого карьерного совета.",
-      howItWorks: "Как это работает",
-      howItWorksTitle: "Простой первый шаг к более ясному карьерному направлению",
-      step1: "Шаг 1",
-      step2: "Шаг 2",
-      step3: "Шаг 3",
-      step1Title: "Ответь на 10 вопросов",
-      step2Title: "Mentra ищет паттерны",
-      step3Title: "Получи практический результат",
-      step1Text:
-        "Ты отвечаешь на короткий набор вопросов о том, что тебя заряжает, что выматывает и в какой среде ты обычно показываешь лучший результат.",
-      step2Text:
-        "На основе ответов Mentra ищет сигналы, связанные с автономией, структурой, взаимодействием, мотивацией и возможным карьерным fit.",
-      step3Text:
-        "Ты получаешь понятное summary, возможные сильные стороны, направления ролей и один следующий шаг, который можно реально сделать.",
-      footerText: "Ранний прототип для более ясного карьерного направления.",
-      footerBullets: ["10 вопросов", "Без регистрации", "Сделано для быстрого фидбека"],
-      mentraAnalysis: "Анализ Mentra",
-      yourMentraResult: "Твой результат Mentra",
-      resultIntro:
-        "Первый разбор того, как ты работаешь, что тебя заряжает и какие типы ролей могут подойти тебе лучше всего.",
-      whyThisResult: "Почему такой результат",
-      keyStrengths: "Сильные стороны",
-      workStyle: "Стиль работы",
-      potentialMismatches: "Что может не подойти",
-      tryAgain: "Пройти ещё раз",
-      backToTop: "Наверх",
-      loadingTitle: "Анализируем твои ответы",
-      loadingText:
-        "Смотрим на паттерны в том, что тебя заряжает, что выматывает и какие роли и среды могут подойти тебе лучше всего.",
-      loading1: "Смотрим на рабочие предпочтения",
-      loading2: "Определяем вероятные сильные стороны",
-      loading3: "Оцениваем подходящие роли и возможные несовпадения",
-      question: "Вопрос",
-      of: "из",
-      answerPrompt:
-        "Отвечай своими словами. Короткий честный ответ лучше, чем слишком вылизанная формулировка.",
-      textareaPlaceholder: "Напиши свой ответ здесь...",
-      tip: "Подсказка: конкретные примеры обычно дают более точный результат.",
-      back: "Назад",
-      next: "Далее",
-      finishAnalysis: "Завершить анализ",
-      quickFeedback: "Быстрый фидбек",
-      didThisFeelAccurate: "Это показалось тебе точным?",
-      yes: "Да",
-      notReally: "Не очень",
-      deeperVersionQuestion: "Ты бы хотела более глубокую версию позже?",
-      maybe: "Возможно",
-      no: "Нет",
-      accurateOrInaccurate: "Что показалось точным, а что — нет?",
-      feedbackPlaceholder: "Необязательно — расскажи, что показалось точным или мимо.",
-      submitFeedback: "Отправить фидбек",
-      thanksFeedback: "Спасибо за фидбек.",
-      thanksFeedbackText:
-        "Это помогает улучшать Mentra и формировать более глубокую версию.",
-    },
+  ru: {
+    brand: "Mentra",
+    heroTitle:
+      "Найди работу, которая действительно подходит тебе по мышлению и стилю работы",
+    heroText:
+      "Mentra задаёт короткий набор вопросов и превращает ответы в практический карьерный разбор: твои сильные стороны, стиль работы, возможные несовпадения и направления ролей, которые могут тебе подойти.",
+    startAssessment: "Начать",
+    seeHowItWorks: "Как это работает",
+    bullets: [
+      "10 коротких вопросов",
+      "Занимает около 3–5 минут",
+      "Без регистрации",
+    ],
+    whatYouGet: "Что ты получишь",
+    profileSummary: "Краткий профиль",
+    bestFitRoles: "Подходящие роли",
+    recommendedNextStep: "Следующий шаг",
+    whatYouGetSummary:
+      "Короткое и понятное описание того, как ты подходишь к работе и что, скорее всего, тебя драйвит.",
+    whatYouGetRoles:
+      "Первый взгляд на типы ролей и рабочих сред, которые могут тебе подойти.",
+    whatYouGetNextStep:
+      "Один практический следующий шаг вместо размытого карьерного совета.",
+    howItWorks: "Как это работает",
+    howItWorksTitle: "Простой первый шаг к более ясному карьерному направлению",
+    step1: "Шаг 1",
+    step2: "Шаг 2",
+    step3: "Шаг 3",
+    step1Title: "Ответь на 10 вопросов",
+    step2Title: "Mentra ищет паттерны",
+    step3Title: "Получи практический результат",
+    step1Text:
+      "Ты отвечаешь на короткий набор вопросов о том, что тебя заряжает, что выматывает и в какой среде ты обычно показываешь лучший результат.",
+    step2Text:
+      "На основе ответов Mentra ищет сигналы, связанные с автономией, структурой, взаимодействием, мотивацией и возможным карьерным fit.",
+    step3Text:
+      "Ты получаешь понятное summary, возможные сильные стороны, направления ролей и один следующий шаг, который можно реально сделать.",
+    footerText: "Ранний прототип для более ясного карьерного направления.",
+    footerBullets: [
+      "10 вопросов",
+      "Без регистрации",
+      "Сделано для быстрого фидбека",
+    ],
+    mentraAnalysis: "Анализ Mentra",
+    yourMentraResult: "Твой результат Mentra",
+    resultIntro:
+      "Первый разбор того, как ты работаешь, что тебя заряжает и какие типы ролей могут подойти тебе лучше всего.",
+    whyThisResult: "Почему такой результат",
+    keyStrengths: "Сильные стороны",
+    workStyle: "Стиль работы",
+    potentialMismatches: "Что может не подойти",
+    tryAgain: "Пройти ещё раз",
+    backToStart: "На старт",
+    backToTop: "Наверх",
+    loadingTitle: "Анализируем твои ответы",
+    loadingText:
+      "Смотрим на паттерны в том, что тебя заряжает, что выматывает и какие роли и среды могут подойти тебе лучше всего.",
+    loading1: "Смотрим на рабочие предпочтения",
+    loading2: "Определяем вероятные сильные стороны",
+    loading3: "Оцениваем подходящие роли и возможные несовпадения",
+    question: "Вопрос",
+    of: "из",
+    answerPrompt:
+      "Отвечай своими словами. Короткий честный ответ лучше, чем слишком вылизанная формулировка.",
+    textareaPlaceholder: "Напиши свой ответ здесь...",
+    tip: "Подсказка: конкретные примеры обычно дают более точный результат.",
+    back: "Назад",
+    next: "Далее",
+    finishAnalysis: "Завершить анализ",
+    quickFeedback: "Быстрый фидбек",
+    didThisFeelAccurate: "Это показалось тебе точным?",
+    yes: "Да",
+    notReally: "Не очень",
+    deeperVersionQuestion: "Ты бы хотела более глубокую версию позже?",
+    maybe: "Возможно",
+    no: "Нет",
+    accurateOrInaccurate: "Что показалось точным, а что — нет?",
+    feedbackPlaceholder:
+      "Необязательно — расскажи, что показалось точным или мимо.",
+    submitFeedback: "Отправить фидбек",
+    thanksFeedback: "Спасибо за фидбек.",
+    thanksFeedbackText:
+      "Это помогает улучшать Mentra и формировать более глубокую версию.",
+    languageChangeWarning:
+      "Смена языка сбросит ваш прогресс. Продолжить?",
+    exitQuizWarning: "Вы уверены, что хотите выйти? Прогресс будет потерян.",
+    aiUnavailableNote: "AI-сервис временно недоступен. Показан базовый анализ.",
+  },
 } as const;
+
+// ========== Sub-components ==========
+
+function LanguageSwitcher({
+  language,
+  onChange,
+}: {
+  language: Language;
+  onChange: (lang: Language) => void;
+}) {
+  return (
+    <div className="inline-flex border rounded-full p-1 bg-white">
+      <button
+        onClick={() => onChange("en")}
+        className={`px-4 py-2 rounded-full text-sm transition-colors ${
+          language === "en" ? "bg-black text-white" : "text-black hover:bg-gray-100"
+        }`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => onChange("ru")}
+        className={`px-4 py-2 rounded-full text-sm transition-colors ${
+          language === "ru" ? "bg-black text-white" : "text-black hover:bg-gray-100"
+        }`}
+      >
+        RU
+      </button>
+    </div>
+  );
+}
+
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="w-full h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
+      <div
+        className="h-full bg-black rounded-full transition-all duration-300"
+        style={{ width: `${(current / total) * 100}%` }}
+      />
+    </div>
+  );
+}
+
+function LandingView({
+  language,
+  t,
+  onStart,
+  onSwitchLanguage,
+}: {
+  language: Language;
+  t: typeof ui.en;
+  onStart: () => void;
+  onSwitchLanguage: (lang: Language) => void;
+}) {
+  return (
+    <main className="min-h-screen bg-white text-black">
+      <section className="px-6 py-6">
+        <div className="max-w-6xl mx-auto flex justify-end">
+          <LanguageSwitcher language={language} onChange={onSwitchLanguage} />
+        </div>
+      </section>
+
+      <section className="px-6 py-10 flex items-center min-h-[80vh]">
+        <div className="max-w-6xl mx-auto w-full grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
+              {t.brand}
+            </p>
+
+            <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
+              {t.heroTitle}
+            </h1>
+
+            <p className="text-lg text-gray-700 leading-8 mb-6 max-w-xl">
+              {t.heroText}
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+              <button
+                onClick={onStart}
+                className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors"
+              >
+                {t.startAssessment}
+              </button>
+
+              <button
+                onClick={() =>
+                  document.getElementById("how-it-works")?.scrollIntoView({
+                    behavior: "smooth",
+                  })
+                }
+                className="border border-black text-black px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                {t.seeHowItWorks}
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600 space-y-2">
+              {t.bullets.map((item, index) => (
+                <p key={index}>• {item}</p>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-neutral-50 border rounded-3xl p-8 md:p-10 shadow-sm">
+            <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
+              {t.whatYouGet}
+            </p>
+
+            <div className="space-y-5">
+              {[
+                { title: t.profileSummary, text: t.whatYouGetSummary },
+                { title: t.bestFitRoles, text: t.whatYouGetRoles },
+                { title: t.recommendedNextStep, text: t.whatYouGetNextStep },
+              ].map((item, i) => (
+                <div key={i} className="border rounded-2xl bg-white p-5">
+                  <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+                  <p className="text-gray-700 leading-7">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="how-it-works"
+        className="px-6 py-20 bg-neutral-50 border-t border-b"
+      >
+        <div className="max-w-6xl mx-auto">
+          <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
+            {t.howItWorks}
+          </p>
+
+          <h2 className="text-4xl md:text-5xl font-bold mb-12 max-w-3xl">
+            {t.howItWorksTitle}
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { step: t.step1, title: t.step1Title, text: t.step1Text },
+              { step: t.step2, title: t.step2Title, text: t.step2Text },
+              { step: t.step3, title: t.step3Title, text: t.step3Text },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="bg-white border rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <p className="text-sm text-gray-500 mb-3">{item.step}</p>
+                <h3 className="text-2xl font-semibold mb-3">{item.title}</h3>
+                <p className="text-gray-700 leading-7">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-10 bg-white">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-sm text-gray-600">
+          <div>
+            <p className="font-medium text-black mb-1">{t.brand}</p>
+            <p>{t.footerText}</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
+            {t.footerBullets.map((item, index) => (
+              <p key={index}>{item}</p>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function QuizView({
+  language,
+  t,
+  step,
+  totalQuestions,
+  currentQuestion,
+  currentAnswer,
+  error,
+  onAnswerChange,
+  onBack,
+  onNext,
+  onSwitchLanguage,
+  onExit,
+}: {
+  language: Language;
+  t: typeof ui.en;
+  step: number;
+  totalQuestions: number;
+  currentQuestion: string;
+  currentAnswer: string;
+  error: string;
+  onAnswerChange: (value: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+  onSwitchLanguage: (lang: Language) => void;
+  onExit: () => void;
+}) {
+  const isLastStep = step === totalQuestions - 1;
+
+  return (
+    <main className="min-h-screen bg-neutral-50 text-black px-6 py-10 flex items-center">
+      <div className="max-w-3xl mx-auto w-full">
+        <div className="flex justify-between items-center mb-6">
+          <button
+            onClick={onExit}
+            className="text-sm text-gray-500 hover:text-black transition-colors"
+          >
+            ← {t.backToStart}
+          </button>
+          <LanguageSwitcher language={language} onChange={onSwitchLanguage} />
+        </div>
+
+        <div className="bg-white border rounded-3xl p-6 md:p-8 shadow-sm">
+          <ProgressBar current={step + 1} total={totalQuestions} />
+
+          <div className="mb-6">
+            <p className="text-sm uppercase tracking-[0.15em] text-gray-500 mb-3">
+              {t.question} {step + 1} {t.of} {totalQuestions}
+            </p>
+
+            <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
+              {currentQuestion}
+            </h1>
+
+            <p className="text-gray-600 leading-7">{t.answerPrompt}</p>
+          </div>
+
+          <div className="mb-4">
+            <textarea
+              value={currentAnswer}
+              onChange={(e) => onAnswerChange(e.target.value)}
+              placeholder={t.textareaPlaceholder}
+              className="w-full min-h-[220px] border rounded-2xl p-5 mb-3 resize-none outline-none focus:ring-2 focus:ring-black transition-shadow"
+              autoFocus
+            />
+
+            <p className="text-sm text-gray-500">{t.tip}</p>
+          </div>
+
+          {error && (
+            <p className="text-red-600 mb-4 p-3 bg-red-50 rounded-xl">
+              {error}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <button
+              onClick={onBack}
+              className="border border-black text-black px-6 py-3 rounded-xl disabled:opacity-40 hover:bg-gray-50 transition-colors"
+              disabled={step === 0}
+            >
+              {t.back}
+            </button>
+
+            <button
+              onClick={onNext}
+              className="bg-black text-white px-6 py-3 rounded-xl disabled:opacity-50 hover:bg-gray-800 transition-colors"
+              disabled={!currentAnswer.trim()}
+            >
+              {isLastStep ? t.finishAnalysis : t.next}
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function LoadingView({
+  language,
+  t,
+  onSwitchLanguage,
+}: {
+  language: Language;
+  t: typeof ui.en;
+  onSwitchLanguage: (lang: Language) => void;
+}) {
+  return (
+    <main className="min-h-screen bg-neutral-50 text-black px-6 py-10 flex items-center">
+      <div className="max-w-2xl mx-auto w-full">
+        <div className="flex justify-end mb-6">
+          <LanguageSwitcher language={language} onChange={onSwitchLanguage} />
+        </div>
+
+        <div className="bg-white border rounded-3xl p-8 md:p-10 shadow-sm text-center">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-6" />
+
+          <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-3">
+            {t.mentraAnalysis}
+          </p>
+
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">
+            {t.loadingTitle}
+          </h1>
+
+          <p className="text-gray-700 leading-8 mb-8 max-w-xl mx-auto">
+            {t.loadingText}
+          </p>
+
+          <div className="grid gap-3 text-left max-w-xl mx-auto">
+            {[t.loading1, t.loading2, t.loading3].map((text, i) => (
+              <div
+                key={i}
+                className="border rounded-2xl px-4 py-3 bg-neutral-50 animate-pulse"
+                style={{ animationDelay: `${i * 200}ms` }}
+              >
+                <p className="font-medium">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ResultView({
+  language,
+  t,
+  result,
+  usefulnessFeedback,
+  deeperVersionInterest,
+  textFeedback,
+  feedbackSubmitted,
+  onUsefulnessChange,
+  onDeeperInterestChange,
+  onTextFeedbackChange,
+  onSubmitFeedback,
+  onRestart,
+  onSwitchLanguage,
+}: {
+  language: Language;
+  t: typeof ui.en;
+  result: AnalysisResult & { provider?: string; _note?: string };
+  usefulnessFeedback: string;
+  deeperVersionInterest: string;
+  textFeedback: string;
+  feedbackSubmitted: boolean;
+  onUsefulnessChange: (value: string) => void;
+  onDeeperInterestChange: (value: string) => void;
+  onTextFeedbackChange: (value: string) => void;
+  onSubmitFeedback: () => void;
+  onRestart: () => void;
+  onSwitchLanguage: (lang: Language) => void;
+}) {
+  const isRussian = language === "ru";
+
+  return (
+    <main className="min-h-screen bg-neutral-50 text-black px-6 py-10">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-end mb-6">
+          <LanguageSwitcher language={language} onChange={onSwitchLanguage} />
+        </div>
+
+        {result._note && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
+            ⚠️ {result._note}
+          </div>
+        )}
+
+        <div className="bg-white border rounded-3xl p-8 md:p-10 shadow-sm mb-8">
+          <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-3">
+            {t.mentraAnalysis}
+          </p>
+
+          <div className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium mb-4 bg-neutral-50">
+            {result.profileType}
+          </div>
+
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            {t.yourMentraResult}
+          </h1>
+
+          <p className="text-lg text-gray-700 leading-8">{t.resultIntro}</p>
+        </div>
+
+        <ResultSection title={t.whyThisResult}>
+          <ul className="list-disc pl-6 space-y-3 text-gray-800">
+            {(result.whyThisResult ?? []).map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </ResultSection>
+
+        <ResultSection title={t.profileSummary}>
+          <p className="leading-8 text-gray-800">{result.profileSummary}</p>
+        </ResultSection>
+
+        <ResultSection title={t.keyStrengths}>
+          <ul className="list-disc pl-6 space-y-3 text-gray-800">
+            {(result.keyStrengths ?? []).map((strength, index) => (
+              <li key={index}>{strength}</li>
+            ))}
+          </ul>
+        </ResultSection>
+
+        <ResultSection title={t.workStyle}>
+          <p className="leading-8 text-gray-800">{result.workStyle}</p>
+        </ResultSection>
+
+        <ResultSection title={t.bestFitRoles}>
+          <div className="space-y-4">
+            {(result.bestFitRoles ?? []).map((item, index) => (
+              <div
+                key={index}
+                className="border rounded-2xl p-5 bg-neutral-50"
+              >
+                <h3 className="text-xl font-semibold">{item.role}</h3>
+                <p className="mt-2 text-gray-700 leading-7">
+                  {item.explanation}
+                </p>
+              </div>
+            ))}
+          </div>
+        </ResultSection>
+
+        <ResultSection title={t.potentialMismatches}>
+          <ul className="list-disc pl-6 space-y-3 text-gray-800">
+            {(result.potentialMismatches ?? []).map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </ResultSection>
+
+        <ResultSection title={t.recommendedNextStep}>
+          <p className="leading-8 text-gray-800">
+            {result.recommendedNextStep}
+          </p>
+        </ResultSection>
+
+        <ResultSection
+          title={isRussian ? "План действий" : "Action Plan"}
+        >
+          <div className="space-y-6">
+            {[
+              {
+                title: isRussian ? "Начать сейчас" : "Start now",
+                items: result.actionPlan?.immediate ?? [],
+              },
+              {
+                title: isRussian
+                  ? "Попробовать направления"
+                  : "Explore directions",
+                items: result.actionPlan?.exploration ?? [],
+              },
+              {
+                title: isRussian
+                  ? "Проверить, подходит ли"
+                  : "Validate fit",
+                items: result.actionPlan?.validation ?? [],
+              },
+            ].map((section, i) => (
+              <div key={i}>
+                <h3 className="font-semibold mb-2">{section.title}</h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  {section.items.map((item, j) => (
+                    <li key={j}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-2">
+                {isRussian ? "Следующий шаг" : "Next step"}
+              </h3>
+              <p>{result.actionPlan?.nextMove}</p>
+            </div>
+          </div>
+        </ResultSection>
+
+        <FeedbackSection
+          t={t}
+          usefulnessFeedback={usefulnessFeedback}
+          deeperVersionInterest={deeperVersionInterest}
+          textFeedback={textFeedback}
+          feedbackSubmitted={feedbackSubmitted}
+          onUsefulnessChange={onUsefulnessChange}
+          onDeeperInterestChange={onDeeperInterestChange}
+          onTextFeedbackChange={onTextFeedbackChange}
+          onSubmitFeedback={onSubmitFeedback}
+        />
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={onRestart}
+            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            {t.tryAgain}
+          </button>
+
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="border border-black text-black px-6 py-3 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            {t.backToTop}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function ResultSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm hover:shadow-md transition-shadow">
+      <h2 className="text-2xl font-semibold mb-4">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function FeedbackSection({
+  t,
+  usefulnessFeedback,
+  deeperVersionInterest,
+  textFeedback,
+  feedbackSubmitted,
+  onUsefulnessChange,
+  onDeeperInterestChange,
+  onTextFeedbackChange,
+  onSubmitFeedback,
+}: {
+  t: typeof ui.en;
+  usefulnessFeedback: string;
+  deeperVersionInterest: string;
+  textFeedback: string;
+  feedbackSubmitted: boolean;
+  onUsefulnessChange: (value: string) => void;
+  onDeeperInterestChange: (value: string) => void;
+  onTextFeedbackChange: (value: string) => void;
+  onSubmitFeedback: () => void;
+}) {
+  if (feedbackSubmitted) {
+    return (
+      <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
+        <div className="rounded-2xl border bg-green-50 p-5">
+          <p className="font-medium mb-2 text-green-800">{t.thanksFeedback}</p>
+          <p className="text-green-700 leading-7">{t.thanksFeedbackText}</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
+      <h2 className="text-2xl font-semibold mb-4">{t.quickFeedback}</h2>
+
+      <div className="space-y-8">
+        <div>
+          <p className="font-medium mb-3">{t.didThisFeelAccurate}</p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { value: "yes", label: t.yes },
+              { value: "not_really", label: t.notReally },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => onUsefulnessChange(option.value)}
+                className={`px-4 py-2 rounded-xl border transition-colors ${
+                  usefulnessFeedback === option.value
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-black border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-medium mb-3">{t.deeperVersionQuestion}</p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { value: "yes", label: t.yes },
+              { value: "maybe", label: t.maybe },
+              { value: "no", label: t.no },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => onDeeperInterestChange(option.value)}
+                className={`px-4 py-2 rounded-xl border transition-colors ${
+                  deeperVersionInterest === option.value
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-black border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="font-medium mb-3">{t.accurateOrInaccurate}</p>
+          <textarea
+            value={textFeedback}
+            onChange={(e) => onTextFeedbackChange(e.target.value)}
+            placeholder={t.feedbackPlaceholder}
+            className="w-full min-h-[140px] border rounded-2xl p-4 resize-none outline-none focus:ring-2 focus:ring-black transition-shadow"
+          />
+        </div>
+
+        <div>
+          <button
+            onClick={onSubmitFeedback}
+            className="bg-black text-white px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            {t.submitFeedback}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ========== Main Component ==========
 
 export default function HomePage() {
   const [language, setLanguage] = useState<Language>("en");
-  const questions = questionsByLanguage[language];
-  const t = ui[language];
-
-  const [started, setStarted] = useState(false);
+  const [viewState, setViewState] = useState<ViewState>("landing");
   const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<string[]>(
-    Array(questions.length).fill("")
-  );
+  const [answers, setAnswers] = useState<string[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState("");
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
-  const [usefulnessFeedback, setUsefulnessFeedback] = useState<string>("");
-  const [deeperVersionInterest, setDeeperVersionInterest] = useState<string>("");
+  const [usefulnessFeedback, setUsefulnessFeedback] = useState("");
+  const [deeperVersionInterest, setDeeperVersionInterest] = useState("");
   const [textFeedback, setTextFeedback] = useState("");
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
-    const switchLanguage = (nextLanguage: Language) => {
-      if (nextLanguage === language) return;
+  const questions = questionsByLanguage[language];
+  const t = ui[language];
 
-      const currentQuestions = questionsByLanguage[language];
-      const nextQuestions = questionsByLanguage[nextLanguage];
+  // Initialize answers when questions change
+  useEffect(() => {
+    setAnswers(Array(questions.length).fill(""));
+    setCurrentAnswer("");
+  }, [questions]);
 
-      const updatedAnswers = [...answers];
-      updatedAnswers[step] = currentAnswer;
+  // Warn before leaving page during quiz
+  useEffect(() => {
+    if (viewState !== "quiz") return;
 
-      setAnswers(updatedAnswers);
-      setLanguage(nextLanguage);
-      setCurrentAnswer(updatedAnswers[step] || "");
-
-      if (!started) {
-        setAnswers(Array(nextQuestions.length).fill(""));
-        setCurrentAnswer("");
-      }
-
-      setError("");
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
     };
 
-  const handleStart = () => {
-    console.log("assessment_started", { language });
-    setStarted(true);
-  };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [viewState]);
 
-  const handleNext = async () => {
+  const handleSwitchLanguage = useCallback(
+    (nextLanguage: Language) => {
+      if (nextLanguage === language) return;
+
+      if (viewState === "quiz" && answers.some((a) => a.trim())) {
+        const confirmed = window.confirm(t.languageChangeWarning);
+        if (!confirmed) return;
+      }
+
+      setLanguage(nextLanguage);
+      if (viewState === "quiz") {
+        setStep(0);
+        setCurrentAnswer("");
+        setError("");
+      }
+    },
+    [language, viewState, answers, t.languageChangeWarning]
+  );
+
+  const handleStart = useCallback(() => {
+    console.log("assessment_started", { language });
+    setViewState("quiz");
+    setStep(0);
+    setAnswers(Array(questions.length).fill(""));
+    setCurrentAnswer("");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [language, questions.length]);
+
+  const handleExit = useCallback(() => {
+    if (answers.some((a) => a.trim())) {
+      const confirmed = window.confirm(t.exitQuizWarning);
+      if (!confirmed) return;
+    }
+    setViewState("landing");
+    setStep(0);
+    setAnswers([]);
+    setCurrentAnswer("");
+    setError("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [answers, t.exitQuizWarning]);
+
+  const handleBack = useCallback(() => {
+    if (step === 0) return;
+
+    const updatedAnswers = [...answers];
+    updatedAnswers[step] = currentAnswer;
+    setAnswers(updatedAnswers);
+
+    const previousStep = step - 1;
+    setStep(previousStep);
+    setCurrentAnswer(updatedAnswers[previousStep] || "");
+    setError("");
+  }, [step, answers, currentAnswer]);
+
+  const handleNext = useCallback(async () => {
     if (!currentAnswer.trim()) return;
 
     const updatedAnswers = [...answers];
@@ -214,15 +913,13 @@ export default function HomePage() {
       return;
     }
 
-    setLoading(true);
+    setViewState("loading");
     setError("");
 
     try {
       const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: updatedAnswers, language }),
       });
 
@@ -233,6 +930,8 @@ export default function HomePage() {
       }
 
       setResult(data);
+      setViewState("result");
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       console.error(err);
       setError(
@@ -240,579 +939,117 @@ export default function HomePage() {
           ? err.message
           : "Something went wrong. Please try again."
       );
-    } finally {
-      setLoading(false);
+      setViewState("quiz");
     }
-  };
+  }, [currentAnswer, step, answers, questions.length, language]);
 
-  const handleBack = () => {
-    if (step === 0) return;
-
-    const updatedAnswers = [...answers];
-    updatedAnswers[step] = currentAnswer;
-    setAnswers(updatedAnswers);
-
-    const previousStep = step - 1;
-    setStep(previousStep);
-    setCurrentAnswer(updatedAnswers[previousStep] || "");
-    setError("");
-  };
-
-    const handleSubmitFeedback = async () => {
-      try {
-        const response = await fetch("/api/feedback", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            usefulnessFeedback,
-            deeperVersionInterest,
-            textFeedback,
-            profileType: result?.profileType ?? null,
-            language,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to submit feedback");
-        }
-
-        setFeedbackSubmitted(true);
-      } catch (error) {
-        console.error("Feedback submit error:", error);
-        setError(
-          language === "ru"
-            ? "Не удалось отправить фидбек."
-            : "Failed to submit feedback."
-        );
-      }
-    };
-
-  const handleRestart = () => {
-    setStarted(false);
+  const handleRestart = useCallback(() => {
+    setViewState("landing");
     setStep(0);
-    setAnswers(Array(questions.length).fill(""));
+    setAnswers([]);
     setCurrentAnswer("");
-    setLoading(false);
     setResult(null);
     setError("");
     setUsefulnessFeedback("");
     setDeeperVersionInterest("");
     setTextFeedback("");
     setFeedbackSubmitted(false);
-  };
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
-  if (result) {
-    return (
-      <main className="min-h-screen bg-neutral-50 text-black px-6 py-10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-end mb-6">
-            <div className="inline-flex border rounded-full p-1 bg-white">
-              <button
-                onClick={() => switchLanguage("en")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "en" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => switchLanguage("ru")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "ru" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                RU
-              </button>
-            </div>
-          </div>
+  const handleSubmitFeedback = useCallback(async () => {
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usefulnessFeedback,
+          deeperVersionInterest,
+          textFeedback,
+          profileType: result?.profileType ?? null,
+          language,
+        }),
+      });
 
-          <div className="bg-white border rounded-3xl p-8 md:p-10 shadow-sm mb-8">
-            <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-3">
-              {t.mentraAnalysis}
-            </p>
+      if (!response.ok) {
+        throw new Error("Failed to submit feedback");
+      }
 
-            <div className="inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium mb-4 bg-neutral-50">
-              {result.profileType}
-            </div>
+      setFeedbackSubmitted(true);
+    } catch (error) {
+      console.error("Feedback submit error:", error);
+      setError(
+        language === "ru"
+          ? "Не удалось отправить фидбек."
+          : "Failed to submit feedback."
+      );
+    }
+  }, [
+    usefulnessFeedback,
+    deeperVersionInterest,
+    textFeedback,
+    result?.profileType,
+    language,
+  ]);
 
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              {t.yourMentraResult}
-            </h1>
+  switch (viewState) {
+    case "landing":
+      return (
+        <LandingView
+          language={language}
+          t={t}
+          onStart={handleStart}
+          onSwitchLanguage={handleSwitchLanguage}
+        />
+      );
 
-            <p className="text-lg text-gray-700 leading-8">{t.resultIntro}</p>
-          </div>
+    case "quiz":
+      return (
+        <QuizView
+          language={language}
+          t={t}
+          step={step}
+          totalQuestions={questions.length}
+          currentQuestion={questions[step]}
+          currentAnswer={currentAnswer}
+          error={error}
+          onAnswerChange={setCurrentAnswer}
+          onBack={handleBack}
+          onNext={handleNext}
+          onSwitchLanguage={handleSwitchLanguage}
+          onExit={handleExit}
+        />
+      );
 
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.whyThisResult}</h2>
-            <ul className="list-disc pl-6 space-y-3 text-gray-800">
-              {(result.whyThisResult ?? []).map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          </section>
+    case "loading":
+      return (
+        <LoadingView
+          language={language}
+          t={t}
+          onSwitchLanguage={handleSwitchLanguage}
+        />
+      );
 
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.profileSummary}</h2>
-            <p className="leading-8 text-gray-800">{result.profileSummary}</p>
-          </section>
+    case "result":
+      return result ? (
+        <ResultView
+          language={language}
+          t={t}
+          result={result}
+          usefulnessFeedback={usefulnessFeedback}
+          deeperVersionInterest={deeperVersionInterest}
+          textFeedback={textFeedback}
+          feedbackSubmitted={feedbackSubmitted}
+          onUsefulnessChange={setUsefulnessFeedback}
+          onDeeperInterestChange={setDeeperVersionInterest}
+          onTextFeedbackChange={setTextFeedback}
+          onSubmitFeedback={handleSubmitFeedback}
+          onRestart={handleRestart}
+          onSwitchLanguage={handleSwitchLanguage}
+        />
+      ) : null;
 
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.keyStrengths}</h2>
-            <ul className="list-disc pl-6 space-y-3 text-gray-800">
-              {(result.keyStrengths ?? []).map((strength, index) => (
-                <li key={index}>{strength}</li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.workStyle}</h2>
-            <p className="leading-8 text-gray-800">{result.workStyle}</p>
-          </section>
-
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.bestFitRoles}</h2>
-            <div className="space-y-4">
-              {(result.bestFitRoles ?? []).map((item, index) => (
-                <div
-                  key={index}
-                  className="border rounded-2xl p-5 bg-neutral-50"
-                >
-                  <h3 className="text-xl font-semibold">{item.role}</h3>
-                  <p className="mt-2 text-gray-700 leading-7">
-                    {item.explanation}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">
-              {t.potentialMismatches}
-            </h2>
-            <ul className="list-disc pl-6 space-y-3 text-gray-800">
-              {(result.potentialMismatches ?? []).map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">
-              {t.recommendedNextStep}
-            </h2>
-            <p className="leading-8 text-gray-800">
-              {result.recommendedNextStep}
-            </p>
-          </section>
-
-          <section className="mb-8 bg-white rounded-3xl p-6 md:p-8 border shadow-sm">
-            <h2 className="text-2xl font-semibold mb-4">{t.quickFeedback}</h2>
-
-            {!feedbackSubmitted ? (
-              <div className="space-y-8">
-                <div>
-                  <p className="font-medium mb-3">{t.didThisFeelAccurate}</p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => setUsefulnessFeedback("yes")}
-                      className={`px-4 py-2 rounded-xl border ${
-                        usefulnessFeedback === "yes"
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300"
-                      }`}
-                    >
-                      {t.yes}
-                    </button>
-
-                    <button
-                      onClick={() => setUsefulnessFeedback("not_really")}
-                      className={`px-4 py-2 rounded-xl border ${
-                        usefulnessFeedback === "not_really"
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300"
-                      }`}
-                    >
-                      {t.notReally}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="font-medium mb-3">{t.deeperVersionQuestion}</p>
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => setDeeperVersionInterest("yes")}
-                      className={`px-4 py-2 rounded-xl border ${
-                        deeperVersionInterest === "yes"
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300"
-                      }`}
-                    >
-                      {t.yes}
-                    </button>
-
-                    <button
-                      onClick={() => setDeeperVersionInterest("maybe")}
-                      className={`px-4 py-2 rounded-xl border ${
-                        deeperVersionInterest === "maybe"
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300"
-                      }`}
-                    >
-                      {t.maybe}
-                    </button>
-
-                    <button
-                      onClick={() => setDeeperVersionInterest("no")}
-                      className={`px-4 py-2 rounded-xl border ${
-                        deeperVersionInterest === "no"
-                          ? "bg-black text-white border-black"
-                          : "bg-white text-black border-gray-300"
-                      }`}
-                    >
-                      {t.no}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="font-medium mb-3">{t.accurateOrInaccurate}</p>
-                  <textarea
-                    value={textFeedback}
-                    onChange={(e) => setTextFeedback(e.target.value)}
-                    placeholder={t.feedbackPlaceholder}
-                    className="w-full min-h-[140px] border rounded-2xl p-4 resize-none outline-none focus:ring-2 focus:ring-black"
-                  />
-                </div>
-
-                <div>
-                  <button
-                    onClick={handleSubmitFeedback}
-                    className="bg-black text-white px-6 py-3 rounded-xl"
-                  >
-                    {t.submitFeedback}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border bg-neutral-50 p-5">
-                <p className="font-medium mb-2">{t.thanksFeedback}</p>
-                <p className="text-gray-700 leading-7">{t.thanksFeedbackText}</p>
-              </div>
-            )}
-          </section>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={handleRestart}
-              className="bg-black text-white px-6 py-3 rounded-xl"
-            >
-              {t.tryAgain}
-            </button>
-
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="border border-black text-black px-6 py-3 rounded-xl"
-            >
-              {t.backToTop}
-            </button>
-          </div>
-        </div>
-      </main>
-    );
+    default:
+      return null;
   }
-
-  if (!started) {
-    return (
-      <main className="min-h-screen bg-white text-black">
-        <section className="px-6 py-6">
-          <div className="max-w-6xl mx-auto flex justify-end">
-            <div className="inline-flex border rounded-full p-1 bg-white">
-              <button
-                onClick={() => switchLanguage("en")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "en" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => switchLanguage("ru")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "ru" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                RU
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-10 flex items-center min-h-[80vh]">
-          <div className="max-w-6xl mx-auto w-full grid md:grid-cols-2 gap-10 items-center">
-            <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
-                {t.brand}
-              </p>
-
-              <h1 className="text-5xl md:text-6xl font-bold leading-tight mb-6">
-                {t.heroTitle}
-              </h1>
-
-              <p className="text-lg text-gray-700 leading-8 mb-6 max-w-xl">
-                {t.heroText}
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 mb-8">
-                <button
-                  onClick={handleStart}
-                  className="bg-black text-white px-6 py-3 rounded-xl"
-                >
-                  {t.startAssessment}
-                </button>
-
-                <button
-                  onClick={() =>
-                    document.getElementById("how-it-works")?.scrollIntoView({
-                      behavior: "smooth",
-                    })
-                  }
-                  className="border border-black text-black px-6 py-3 rounded-xl"
-                >
-                  {t.seeHowItWorks}
-                </button>
-              </div>
-
-              <div className="text-sm text-gray-600 space-y-2">
-                {t.bullets.map((item, index) => (
-                  <p key={index}>• {item}</p>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-neutral-50 border rounded-3xl p-8 md:p-10 shadow-sm">
-              <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
-                {t.whatYouGet}
-              </p>
-
-              <div className="space-y-5">
-                <div className="border rounded-2xl bg-white p-5">
-                  <h3 className="font-semibold text-lg mb-2">{t.profileSummary}</h3>
-                  <p className="text-gray-700 leading-7">
-                    {t.whatYouGetSummary}
-                  </p>
-                </div>
-
-                <div className="border rounded-2xl bg-white p-5">
-                  <h3 className="font-semibold text-lg mb-2">{t.bestFitRoles}</h3>
-                  <p className="text-gray-700 leading-7">{t.whatYouGetRoles}</p>
-                </div>
-
-                <div className="border rounded-2xl bg-white p-5">
-                  <h3 className="font-semibold text-lg mb-2">
-                    {t.recommendedNextStep}
-                  </h3>
-                  <p className="text-gray-700 leading-7">
-                    {t.whatYouGetNextStep}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section
-          id="how-it-works"
-          className="px-6 py-20 bg-neutral-50 border-t border-b"
-        >
-          <div className="max-w-6xl mx-auto">
-            <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-4">
-              {t.howItWorks}
-            </p>
-
-            <h2 className="text-4xl md:text-5xl font-bold mb-12 max-w-3xl">
-              {t.howItWorksTitle}
-            </h2>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white border rounded-3xl p-6 shadow-sm">
-                <p className="text-sm text-gray-500 mb-3">{t.step1}</p>
-                <h3 className="text-2xl font-semibold mb-3">{t.step1Title}</h3>
-                <p className="text-gray-700 leading-7">{t.step1Text}</p>
-              </div>
-
-              <div className="bg-white border rounded-3xl p-6 shadow-sm">
-                <p className="text-sm text-gray-500 mb-3">{t.step2}</p>
-                <h3 className="text-2xl font-semibold mb-3">{t.step2Title}</h3>
-                <p className="text-gray-700 leading-7">{t.step2Text}</p>
-              </div>
-
-              <div className="bg-white border rounded-3xl p-6 shadow-sm">
-                <p className="text-sm text-gray-500 mb-3">{t.step3}</p>
-                <h3 className="text-2xl font-semibold mb-3">{t.step3Title}</h3>
-                <p className="text-gray-700 leading-7">{t.step3Text}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-10 bg-white">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-sm text-gray-600">
-            <div>
-              <p className="font-medium text-black mb-1">{t.brand}</p>
-              <p>{t.footerText}</p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
-              {t.footerBullets.map((item, index) => (
-                <p key={index}>{item}</p>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-neutral-50 text-black px-6 py-10 flex items-center">
-        <div className="max-w-2xl mx-auto w-full">
-          <div className="flex justify-end mb-6">
-            <div className="inline-flex border rounded-full p-1 bg-white">
-              <button
-                onClick={() => switchLanguage("en")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "en" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                EN
-              </button>
-              <button
-                onClick={() => switchLanguage("ru")}
-                className={`px-4 py-2 rounded-full text-sm ${
-                  language === "ru" ? "bg-black text-white" : "text-black"
-                }`}
-              >
-                RU
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white border rounded-3xl p-8 md:p-10 shadow-sm text-center">
-            <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-6" />
-
-            <p className="text-sm uppercase tracking-[0.2em] text-gray-500 mb-3">
-              {t.mentraAnalysis}
-            </p>
-
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              {t.loadingTitle}
-            </h1>
-
-            <p className="text-gray-700 leading-8 mb-8 max-w-xl mx-auto">
-              {t.loadingText}
-            </p>
-
-            <div className="grid gap-3 text-left max-w-xl mx-auto">
-              <div className="border rounded-2xl px-4 py-3 bg-neutral-50">
-                <p className="font-medium">{t.loading1}</p>
-              </div>
-
-              <div className="border rounded-2xl px-4 py-3 bg-neutral-50">
-                <p className="font-medium">{t.loading2}</p>
-              </div>
-
-              <div className="border rounded-2xl px-4 py-3 bg-neutral-50">
-                <p className="font-medium">{t.loading3}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="min-h-screen bg-neutral-50 text-black px-6 py-10 flex items-center">
-      <div className="max-w-3xl mx-auto w-full">
-        <div className="flex justify-end mb-6">
-          <div className="inline-flex border rounded-full p-1 bg-white">
-            <button
-              onClick={() => switchLanguage("en")}
-              className={`px-4 py-2 rounded-full text-sm ${
-                language === "en" ? "bg-black text-white" : "text-black"
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => switchLanguage("ru")}
-              className={`px-4 py-2 rounded-full text-sm ${
-                language === "ru" ? "bg-black text-white" : "text-black"
-              }`}
-            >
-              RU
-            </button>
-          </div>
-        </div>
-
-        <div className="bg-white border rounded-3xl p-6 md:p-8 shadow-sm">
-          <div className="w-full h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
-            <div
-              className="h-full bg-black rounded-full transition-all"
-              style={{ width: `${((step + 1) / questions.length) * 100}%` }}
-            />
-          </div>
-
-          <div className="mb-6">
-            <p className="text-sm uppercase tracking-[0.15em] text-gray-500 mb-3">
-              {t.question} {step + 1} {t.of} {questions.length}
-            </p>
-
-            <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-              {questions[step]}
-            </h1>
-
-            <p className="text-gray-600 leading-7">{t.answerPrompt}</p>
-          </div>
-
-          <div className="mb-4">
-            <textarea
-              value={currentAnswer}
-              onChange={(e) => setCurrentAnswer(e.target.value)}
-              placeholder={t.textareaPlaceholder}
-              className="w-full min-h-[220px] border rounded-2xl p-5 mb-3 resize-none outline-none focus:ring-2 focus:ring-black"
-            />
-
-            <p className="text-sm text-gray-500">{t.tip}</p>
-          </div>
-
-          {error && <p className="text-red-600 mb-4">{error}</p>}
-
-          <div className="flex items-center justify-between gap-3 pt-2">
-            <button
-              onClick={handleBack}
-              className="border border-black text-black px-6 py-3 rounded-xl disabled:opacity-40"
-              disabled={step === 0}
-            >
-              {t.back}
-            </button>
-
-            <button
-              onClick={handleNext}
-              className="bg-black text-white px-6 py-3 rounded-xl disabled:opacity-50"
-              disabled={!currentAnswer.trim()}
-            >
-              {step === questions.length - 1 ? t.finishAnalysis : t.next}
-            </button>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
 }

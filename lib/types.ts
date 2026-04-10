@@ -1,6 +1,4 @@
 export type AnalysisResult = {
-  provider?: string;
-  profileType: string;
   profileSummary: string;
   whyThisResult: string[];
   keyStrengths: string[];
@@ -10,5 +8,14 @@ export type AnalysisResult = {
     explanation: string;
   }[];
   potentialMismatches: string[];
-  recommendedNextStep: string;
+
+  actionPlan: {
+    immediate: string[];
+    exploration: string[];
+    validation: string[];
+    nextMove: string;
+  };
+
+  profileType: string;
+  provider?: string;
 };
