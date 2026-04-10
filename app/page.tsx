@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { questionsByLanguage } from "@/data/questions";
 import type { AnalysisResult } from "@/lib/types";
+
 type Language = "en" | "ru";
 type ViewState = "landing" | "quiz" | "loading" | "result";
 
@@ -276,7 +277,7 @@ function LandingView({
             </div>
 
             <div className="text-sm text-gray-600 space-y-2">
-              {t.bullets.map((item, index) => (
+              {t.bullets.map((item: string, index: number) => (
                 <p key={index}>• {item}</p>
               ))}
             </div>
@@ -292,7 +293,7 @@ function LandingView({
                 { title: t.profileSummary, text: t.whatYouGetSummary },
                 { title: t.bestFitRoles, text: t.whatYouGetRoles },
                 { title: t.recommendedNextStep, text: t.whatYouGetNextStep },
-              ].map((item, i) => (
+              ].map((item: { title: string; text: string }, i: number) => (
                 <div key={i} className="border rounded-2xl bg-white p-5">
                   <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
                   <p className="text-gray-700 leading-7">{item.text}</p>
@@ -321,7 +322,7 @@ function LandingView({
               { step: t.step1, title: t.step1Title, text: t.step1Text },
               { step: t.step2, title: t.step2Title, text: t.step2Text },
               { step: t.step3, title: t.step3Title, text: t.step3Text },
-            ].map((item, i) => (
+            ].map((item: { step: string; title: string; text: string }, i: number) => (
               <div
                 key={i}
                 className="bg-white border rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow"
@@ -343,7 +344,7 @@ function LandingView({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-6">
-            {t.footerBullets.map((item, index) => (
+            {t.footerBullets.map((item: string, index: number) => (
               <p key={index}>{item}</p>
             ))}
           </div>
@@ -368,7 +369,7 @@ function QuizView({
   onExit,
 }: {
   language: Language;
-  t: any;t
+  t: any;
   step: number;
   totalQuestions: number;
   currentQuestion: string;
@@ -483,7 +484,7 @@ function LoadingView({
           </p>
 
           <div className="grid gap-3 text-left max-w-xl mx-auto">
-            {[t.loading1, t.loading2, t.loading3].map((text, i) => (
+            {[t.loading1, t.loading2, t.loading3].map((text: string, i: number) => (
               <div
                 key={i}
                 className="border rounded-2xl px-4 py-3 bg-neutral-50 animate-pulse"
@@ -561,7 +562,7 @@ function ResultView({
 
         <ResultSection title={t.whyThisResult}>
           <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.whyThisResult ?? []).map((item, index) => (
+            {(result.whyThisResult ?? []).map((item: string, index: number) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
@@ -573,7 +574,7 @@ function ResultView({
 
         <ResultSection title={t.keyStrengths}>
           <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.keyStrengths ?? []).map((strength, index) => (
+            {(result.keyStrengths ?? []).map((strength: string, index: number) => (
               <li key={index}>{strength}</li>
             ))}
           </ul>
@@ -585,7 +586,7 @@ function ResultView({
 
         <ResultSection title={t.bestFitRoles}>
           <div className="space-y-4">
-            {(result.bestFitRoles ?? []).map((item, index) => (
+            {(result.bestFitRoles ?? []).map((item: { role: string; explanation: string }, index: number) => (
               <div
                 key={index}
                 className="border rounded-2xl p-5 bg-neutral-50"
@@ -601,7 +602,7 @@ function ResultView({
 
         <ResultSection title={t.potentialMismatches}>
           <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.potentialMismatches ?? []).map((item, index) => (
+            {(result.potentialMismatches ?? []).map((item: string, index: number) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
@@ -634,11 +635,11 @@ function ResultView({
                   : "Validate fit",
                 items: result.actionPlan?.validation ?? [],
               },
-            ].map((section, i) => (
+            ].map((section: { title: string; items: string[] }, i: number) => (
               <div key={i}>
                 <h3 className="font-semibold mb-2">{section.title}</h3>
                 <ul className="list-disc pl-6 space-y-2">
-                  {section.items.map((item, j) => (
+                  {section.items.map((item: string, j: number) => (
                     <li key={j}>{item}</li>
                   ))}
                 </ul>
@@ -744,7 +745,7 @@ function FeedbackSection({
             {[
               { value: "yes", label: t.yes },
               { value: "not_really", label: t.notReally },
-            ].map((option) => (
+            ].map((option: { value: string; label: string }) => (
               <button
                 key={option.value}
                 onClick={() => onUsefulnessChange(option.value)}
@@ -767,7 +768,7 @@ function FeedbackSection({
               { value: "yes", label: t.yes },
               { value: "maybe", label: t.maybe },
               { value: "no", label: t.no },
-            ].map((option) => (
+            ].map((option: { value: string; label: string }) => (
               <button
                 key={option.value}
                 onClick={() => onDeeperInterestChange(option.value)}
@@ -824,13 +825,11 @@ export default function HomePage() {
   const questions = questionsByLanguage[language];
   const t = ui[language];
 
-  // Initialize answers when questions change
   useEffect(() => {
     setAnswers(Array(questions.length).fill(""));
     setCurrentAnswer("");
   }, [questions]);
 
-  // Warn before leaving page during quiz
   useEffect(() => {
     if (viewState !== "quiz") return;
 
