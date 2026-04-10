@@ -843,14 +843,49 @@ export default function HomePage() {
   }, [viewState]);
 
   const handleSwitchLanguage = useCallback(
-    (nextLanguage: Language) => {
+    async (nextLanguage: Language) => {
       if (nextLanguage === language) return;
 
+      // Предупреждение при выходе из квиза
       if (viewState === "quiz" && answers.some((a) => a.trim())) {
         const confirmed = window.confirm(t.languageChangeWarning);
         if (!confirmed) return;
       }
 
+      // 🔥 ПЕРЕГЕНЕРАЦИЯ РЕЗУЛЬТАТА ПРИ СМЕНЕ ЯЗЫКА
+      if (viewState === "result" && answers.length === 10) {
+        setLanguage(nextLanguage);
+        setViewState("loading");
+        setError("");
+
+        try {
+          const response = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers, language: nextLanguage }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to analyze answers");
+          }
+
+          setResult(data);
+          setViewState("result");
+        } catch (err) {
+          console.error(err);
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Something went wrong. Please try again."
+          );
+          setViewState("result");
+        }
+        return;
+      }
+
+      // Обычная смена языка
       setLanguage(nextLanguage);
       if (viewState === "quiz") {
         setStep(0);
