@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react";
 import { questionsByLanguage } from "@/data/questions";
 import type { AnalysisResult } from "@/lib/types";
 type Language = "en" | "ru";
-type UILanguage = typeof ui.en;
 type ViewState = "landing" | "quiz" | "loading" | "result";
 
 const ui = {
@@ -229,7 +228,7 @@ function LandingView({
   onSwitchLanguage,
 }: {
   language: Language;
-  t: UILanguage;
+  t: any;
   onStart: () => void;
   onSwitchLanguage: (lang: Language) => void;
 }) {
@@ -369,7 +368,7 @@ function QuizView({
   onExit,
 }: {
   language: Language;
-  t: UILanguage;
+  t: any;t
   step: number;
   totalQuestions: number;
   currentQuestion: string;
@@ -458,7 +457,7 @@ function LoadingView({
   onSwitchLanguage,
 }: {
   language: Language;
-  t: UILanguage;
+  t: any;
   onSwitchLanguage: (lang: Language) => void;
 }) {
   return (
@@ -516,7 +515,7 @@ function ResultView({
   onSwitchLanguage,
 }: {
   language: Language;
-  t: UILanguage;
+  t: any;
   result: AnalysisResult & { provider?: string; _note?: string };
   usefulnessFeedback: string;
   deeperVersionInterest: string;
@@ -713,7 +712,7 @@ function FeedbackSection({
   onTextFeedbackChange,
   onSubmitFeedback,
 }: {
-  t: UILanguage;
+  t: any;
   usefulnessFeedback: string;
   deeperVersionInterest: string;
   textFeedback: string;
