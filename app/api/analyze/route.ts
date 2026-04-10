@@ -636,19 +636,33 @@ export async function POST(req: NextRequest) {
     // Fallback для пустых полей
     if (normalized.whyThisResult.length < 3) {
       normalized.whyThisResult = isRussian
-        ? ["Ориентация на практический результат", "Предпочтение структурированной работы", "Важность автономии"]
+        ? ["Ориентация на практический результат", "Предпочтение структурированной работы", "Важность автономии в работе"]
         : ["Focus on practical outcomes", "Preference for structured work", "Importance of autonomy"];
     }
 
     if (normalized.keyStrengths.length < 3) {
       normalized.keyStrengths = isRussian
-        ? ["Аналитическое мышление", "Системный подход", "Надёжность"]
-        : ["Analytical thinking", "Systematic approach", "Reliability"];
+        ? ["Аналитическое мышление", "Системный подход", "Надёжность и последовательность"]
+        : ["Analytical thinking", "Systematic approach", "Reliability and consistency"];
     }
 
     if (normalized.bestFitRoles.length < 2) {
       const smartFallback = generateSmartFallback(language, answers, qualityInfo);
       normalized.bestFitRoles = smartFallback.bestFitRoles;
+    }
+
+    // 🔥 ВАЖНО: profileSummary уже локализован в cleanText, но если он пустой — добавим fallback
+    if (!normalized.profileSummary || normalized.profileSummary.length < 10) {
+      normalized.profileSummary = isRussian
+        ? "Прагматичный специалист, ориентированный на измеримые результаты и улучшение процессов. Предпочитает структурированную автономию и работу с данными."
+        : "A pragmatic problem-solver who thrives on iterative improvement and concrete results, preferring structured autonomy to build or refine systems.";
+    }
+
+    // 🔥 ВАЖНО: workStyle локализован
+    if (!normalized.workStyle || normalized.workStyle.length < 10) {
+      normalized.workStyle = isRussian
+        ? "Структурированная среда с чёткими целями и свободой в методах. Предпочитает роли с измеримыми результатами и минимумом бюрократии."
+        : "A structured yet autonomous environment with clear objectives but freedom in methodology. Prefers roles focused on tangible outputs with minimal bureaucracy.";
     }
 
     if (!normalized.actionPlan.immediate.length) {
