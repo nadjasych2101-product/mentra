@@ -372,7 +372,7 @@ function QuizView({
   t: any;
   step: number;
   totalQuestions: number;
-  currentQuestion: string;
+  currentQuestion: { question: string; hint: string };
   currentAnswer: string;
   error: string;
   onAnswerChange: (value: string) => void;
@@ -405,7 +405,7 @@ function QuizView({
             </p>
 
             <h1 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-              {currentQuestion}
+              {currentQuestion.question}
             </h1>
 
             <p className="text-gray-600 leading-7">{t.answerPrompt}</p>
@@ -419,6 +419,10 @@ function QuizView({
               className="w-full min-h-[220px] border rounded-2xl p-5 mb-3 resize-none outline-none focus:ring-2 focus:ring-black transition-shadow"
               autoFocus
             />
+
+            <p className="text-sm text-gray-400 italic mb-2">
+              💡 {currentQuestion.hint}
+            </p>
 
             <p className="text-sm text-gray-500">{t.tip}</p>
           </div>
@@ -846,13 +850,11 @@ export default function HomePage() {
     async (nextLanguage: Language) => {
       if (nextLanguage === language) return;
 
-      // Предупреждение при выходе из квиза
       if (viewState === "quiz" && answers.some((a) => a.trim())) {
         const confirmed = window.confirm(t.languageChangeWarning);
         if (!confirmed) return;
       }
 
-      // 🔥 ПЕРЕГЕНЕРАЦИЯ РЕЗУЛЬТАТА ПРИ СМЕНЕ ЯЗЫКА
       if (viewState === "result" && answers.length === 10) {
         setLanguage(nextLanguage);
         setViewState("loading");
@@ -885,7 +887,6 @@ export default function HomePage() {
         return;
       }
 
-      // Обычная смена языка
       setLanguage(nextLanguage);
       if (viewState === "quiz") {
         setStep(0);
