@@ -855,6 +855,16 @@ export default function HomePage() {
         if (!confirmed) return;
       }
 
+      // 🔥 ВАЖНО: При смене языка в режиме квиза — сбрасываем ВСЁ
+      if (viewState === "quiz") {
+        setLanguage(nextLanguage);
+        setStep(0);
+        setAnswers([]);
+        setCurrentAnswer("");
+        setError("");
+        return;
+      }
+
       if (viewState === "result" && answers.length === 10) {
         setLanguage(nextLanguage);
         setViewState("loading");
@@ -888,11 +898,6 @@ export default function HomePage() {
       }
 
       setLanguage(nextLanguage);
-      if (viewState === "quiz") {
-        setStep(0);
-        setCurrentAnswer("");
-        setError("");
-      }
     },
     [language, viewState, answers, t.languageChangeWarning]
   );
