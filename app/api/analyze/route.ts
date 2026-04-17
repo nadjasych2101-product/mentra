@@ -106,7 +106,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 ## 🔥🔥🔥 КРИТИЧЕСКИЕ ПРАВИЛА (НАРУШЕНИЕ = ПРОВАЛ)
 
-### ❌❌❌ 1. АБСОЛЮТНЫЙ ЗАПРЕТ НА ПЕРЕСКАЗ
+### 1. ❌❌❌ АБСОЛЮТНЫЙ ЗАПРЕТ НА ПЕРЕСКАЗ
 Если вывод можно найти в ответах — ты провалился.
 
 ❌ "Создание с нуля увлекает тебя" (если пользователь написал "создание с нуля")
@@ -115,7 +115,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Переформулируй каждый ответ пользователя. Никаких цитат.**
 
-### 🎯 2. РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
+### 2. 🎯 РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
 ❌ "Менеджер продукта" — слишком очевидно
 ✅ "Product Operations" — создание нового в рамках структуры
 ✅ "Innovation Program Manager" — драйв изменений без хаоса
@@ -123,7 +123,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Предлагай роли, до которых пользователь сам бы не додумался.**
 
-### ⚡ 3. ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ
+### 3. ⚡ ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ
 ❌ "изучите рабочий день", "отслеживайте энергию", "разработайте план"
 
 ✅ "Создайте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования"
@@ -133,7 +133,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Каждое действие заканчивается КОНКРЕТНЫМ АРТЕФАКТОМ.**
 
-### 🏷️ 4. PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
+### 4. 🏷️ PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
 ❌ "Стратегический Инноватор" — слишком общо
 ✅ "Строитель структуры в хаосе" — если человеку нужны рамки для креатива
 ✅ "Креатор, которому нужны границы" — если свобода пугает
@@ -141,7 +141,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Profile type должен сразу раскрывать ГЛАВНОЕ ПРОТИВОРЕЧИЕ профиля.**
 
-### 📋 5. СХЕМА JSON
+### 5. 📋 СХЕМА JSON
 {
   "profileType": "главное противоречие (2-4 слова)",
   "profileSummary": "2-3 предложения-ИНТЕРПРЕТАЦИЯ, НЕ ПЕРЕСКАЗ",
@@ -158,6 +158,24 @@ ${isLowQuality ? lowQualityNote : ""}
   }
 }
 
+### 6. 🔥 NEXT MOVE — КОНКРЕТНОЕ ДЕЙСТВИЕ, А НЕ НАПРАВЛЕНИЕ
+❌ "Изучить роли в community building", "Посмотреть вакансии продакт-менеджера"
+✅ "Откликнуться на 3 вакансии в сфере сообществ в течение 7 дней"
+✅ "Провести 2 информационных интервью с продакт-менеджерами на этой неделе"
+
+### 7. 💪 STRENGTHS — УНИКАЛЬНЫЕ ДЛЯ ЭТОГО ПРОФИЛЯ
+❌ "креативное решение проблем", "самомотивация" — слишком обще
+✅ "Превращение размытых брифов в структурированные планы"
+✅ "Сохранение импульса без внешней отчётности"
+
+### 8. 🎯 WORK STYLE — ПОКАЖИ ПРОТИВОРЕЧИЕ
+❌ "предпочитает структурированную автономию"
+✅ "Нужны чёткие цели, но полная свобода в том, как их достичь — слишком много неопределённости парализует, слишком много контроля фрустрирует"
+
+### 9. 🚀 ROLES — ИЗБЕГАЙ ОЧЕВИДНЫХ СВЯЗОК
+❌ "Community Builder" (если пользователь написал "развитие сообществ")
+✅ "Developer Relations", "Product Evangelist" — смежные, неочевидные роли
+
 Верни ТОЛЬКО чистый JSON.`
     : `You are Mentra, a premium AI for career navigation. Your goal: SURPRISE with non-obvious but accurate insights.
 
@@ -165,7 +183,7 @@ ${isLowQuality ? lowQualityNote : ""}
 
 ## 🔥🔥🔥 CRITICAL RULES (VIOLATION = FAILURE)
 
-### ❌❌❌ 1. ABSOLUTE NO REGURGITATION
+### 1. ❌❌❌ ABSOLUTE NO REGURGITATION
 If a conclusion can be found in the answers — you failed.
 
 ❌ "You enjoy creating from scratch" (if user said "creating from scratch")
@@ -174,7 +192,7 @@ If a conclusion can be found in the answers — you failed.
 
 **Rephrase every user answer. No quotes.**
 
-### 🎯 2. ROLES MUST SURPRISE
+### 2. 🎯 ROLES MUST SURPRISE
 ❌ "Product Manager" — too obvious
 ✅ "Product Operations" — creation within structure
 ✅ "Innovation Program Manager" — driving change without chaos
@@ -182,7 +200,7 @@ If a conclusion can be found in the answers — you failed.
 
 **Suggest roles the user wouldn't think of themselves.**
 
-### ⚡ 3. ACTION PLAN = CONCRETE ARTIFACTS
+### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS
 ❌ "study the workday", "track energy", "develop a plan"
 
 ✅ "Create a spreadsheet with 5 [ROLE] job postings and highlight 3 recurring requirements"
@@ -192,7 +210,7 @@ If a conclusion can be found in the answers — you failed.
 
 **Every action must end with a CONCRETE ARTIFACT.**
 
-### 🏷️ 4. PROFILE TYPE = CORE CONTRADICTION
+### 4. 🏷️ PROFILE TYPE = CORE CONTRADICTION
 ❌ "Strategic Innovator" — too generic
 ✅ "Structure Builder in Chaos" — if creativity needs boundaries
 ✅ "Creator Who Needs Guardrails" — if freedom is scary
@@ -200,7 +218,7 @@ If a conclusion can be found in the answers — you failed.
 
 **Profile type must reveal the CORE CONTRADICTION.**
 
-### 📋 5. JSON SCHEMA
+### 5. 📋 JSON SCHEMA
 {
   "profileType": "core contradiction (2-4 words)",
   "profileSummary": "2-3 sentences of INTERPRETATION, NOT REPETITION",
@@ -216,6 +234,24 @@ If a conclusion can be found in the answers — you failed.
     "nextMove": "career move for 1-3 months"
   }
 }
+
+### 6. 🔥 NEXT MOVE — CONCRETE ACTION, NOT DIRECTION
+❌ "Explore community building roles", "Look into product management"
+✅ "Apply to 3 community-related roles in the next 7 days"
+✅ "Reach out to 2 Product Managers for informational interviews this week"
+
+### 7. 💪 STRENGTHS — UNIQUE TO THIS PROFILE
+❌ "creative problem-solving", "self-motivation" — too generic
+✅ "Translating ambiguous briefs into structured plans"
+✅ "Maintaining momentum without external accountability"
+
+### 8. 🎯 WORK STYLE — SHOW THE CONTRADICTION
+❌ "prefers structured autonomy"
+✅ "Needs clear goals, but full freedom in how to achieve them — too much ambiguity paralyses, too much control frustrates"
+
+### 9. 🚀 ROLES — AVOID OBVIOUS MATCHES
+❌ "Community Builder" (if user said "community building")
+✅ "Developer Relations", "Product Evangelist" — adjacent, surprising
 
 Return ONLY clean JSON.`;
 }
@@ -381,8 +417,8 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
         ? [`Сделайте мини-презентацию о себе для роли ${roleExample} на 3 слайда`, `Покажите презентацию знакомому из индустрии для обратной связи`]
         : [`Create a 3-slide mini-pitch about yourself for a ${roleExample} role`, `Share the pitch with someone in the industry for feedback`],
       nextMove: isRussian
-        ? `В течение месяца проведи 3 информационных интервью с ${roleExample} и определи, какие навыки нужно прокачать в первую очередь`
-        : `Within a month, conduct 3 informational interviews with ${roleExample} and identify which skills to develop first`,
+        ? `Подайся на 3 вакансии "${roleExample}" в течение 7 дней или проведи 2 информационных интервью`
+        : `Apply to 3 "${roleExample}" roles in the next 7 days or conduct 2 informational interviews`,
     },
     _note: isLowQuality
       ? (isRussian ? "⚠️ Анализ основан на коротких ответах." : "⚠️ Analysis based on short answers.")
@@ -572,8 +608,8 @@ export async function POST(req: NextRequest) {
     if (!normalized.actionPlan.nextMove) {
       const roleExample = normalized.bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
       normalized.actionPlan.nextMove = isRussian
-        ? `Проведи 3 интервью с ${roleExample} за месяц`
-        : `Conduct 3 interviews with ${roleExample} in a month`;
+        ? `Подайся на 3 вакансии "${roleExample}" за 7 дней или проведи 2 интервью`
+        : `Apply to 3 "${roleExample}" roles in 7 days or conduct 2 interviews`;
     }
 
     console.log(`✅ Analysis complete, provider: ${provider}, profile: ${normalized.profileType}`);
