@@ -567,47 +567,59 @@ function ResultView({
           <p className="leading-8 text-gray-800">{result.profileSummary}</p>
         </ResultSection>
 
-        <ResultSection title={t.keyStrengths}>
-          <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.keyStrengths ?? []).map((strength: string, index: number) => (
-              <li key={index}>{strength}</li>
-            ))}
-          </ul>
-        </ResultSection>
+        {result.whyThisResult && result.whyThisResult.length > 0 && (
+          <ResultSection title={t.whyThisResult}>
+            <ul className="list-disc pl-6 space-y-3 text-gray-800">
+              {result.whyThisResult.map((item: string, index: number) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </ResultSection>
+        )}
 
-        <ResultSection title={t.workStyle}>
-          <p className="leading-8 text-gray-800">{result.workStyle}</p>
-        </ResultSection>
+        {result.keyStrengths && result.keyStrengths.length > 0 && (
+          <ResultSection title={t.keyStrengths}>
+            <ul className="list-disc pl-6 space-y-3 text-gray-800">
+              {result.keyStrengths.map((strength: string, index: number) => (
+                <li key={index}>{strength}</li>
+              ))}
+            </ul>
+          </ResultSection>
+        )}
 
-        <ResultSection title={t.bestFitRoles}>
-          <div className="space-y-4">
-            {(result.bestFitRoles ?? []).map((item: { role: string; explanation: string }, index: number) => (
-              <div
-                key={index}
-                className="border rounded-2xl p-5 bg-neutral-50"
-              >
-                <h3 className="text-xl font-semibold">{item.role}</h3>
-                <p className="mt-2 text-gray-700 leading-7">
-                  {item.explanation}
-                </p>
-              </div>
-            ))}
-          </div>
-        </ResultSection>
+        {result.workStyle && (
+          <ResultSection title={t.workStyle}>
+            <p className="leading-8 text-gray-800">{result.workStyle}</p>
+          </ResultSection>
+        )}
 
-        <ResultSection title={t.potentialMismatches}>
-          <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.potentialMismatches ?? []).map((item: string, index: number) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </ResultSection>
+        {result.bestFitRoles && result.bestFitRoles.length > 0 && (
+          <ResultSection title={t.bestFitRoles}>
+            <div className="space-y-4">
+              {result.bestFitRoles.map((item: { role: string; explanation: string }, index: number) => (
+                <div
+                  key={index}
+                  className="border rounded-2xl p-5 bg-neutral-50"
+                >
+                  <h3 className="text-xl font-semibold">{item.role}</h3>
+                  <p className="mt-2 text-gray-700 leading-7">
+                    {item.explanation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </ResultSection>
+        )}
 
-        <ResultSection title={t.recommendedNextStep}>
-          <p className="leading-8 text-gray-800">
-            {result.recommendedNextStep}
-          </p>
-        </ResultSection>
+        {result.potentialMismatches && result.potentialMismatches.length > 0 && (
+          <ResultSection title={t.potentialMismatches}>
+            <ul className="list-disc pl-6 space-y-3 text-gray-800">
+              {result.potentialMismatches.map((item: string, index: number) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </ResultSection>
+        )}
 
         <ResultSection
           title={isRussian ? "План действий" : "Action Plan"}
@@ -632,21 +644,27 @@ function ResultView({
               },
             ].map((section: { title: string; items: string[] }, i: number) => (
               <div key={i}>
-                <h3 className="font-semibold mb-2">{section.title}</h3>
-                <ul className="list-disc pl-6 space-y-2">
-                  {section.items.map((item: string, j: number) => (
-                    <li key={j}>{item}</li>
-                  ))}
-                </ul>
+                {section.items && section.items.length > 0 && (
+                  <>
+                    <h3 className="font-semibold mb-2">{section.title}</h3>
+                    <ul className="list-disc pl-6 space-y-2">
+                      {section.items.map((item: string, j: number) => (
+                        <li key={j}>{item}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             ))}
 
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">
-                {isRussian ? "Следующий шаг" : "Next step"}
-              </h3>
-              <p>{result.actionPlan?.nextMove}</p>
-            </div>
+            {result.actionPlan?.nextMove && (
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-2">
+                  {isRussian ? "Следующий шаг" : "Next step"}
+                </h3>
+                <p>{result.actionPlan.nextMove}</p>
+              </div>
+            )}
           </div>
         </ResultSection>
 
