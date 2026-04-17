@@ -23,7 +23,6 @@ const ui = {
     whatYouGet: "What you get",
     profileSummary: "Profile Summary",
     bestFitRoles: "Best-Fit Roles",
-    recommendedNextStep: "Recommended Next Step",
     whatYouGetSummary:
       "A concise reflection on how you approach work and what seems to drive you.",
     whatYouGetRoles:
@@ -562,7 +561,7 @@ function ResultView({
           </h1>
 
           <p className="text-lg text-gray-700 leading-8">{t.resultIntro}</p>
-        </div>git add .
+        </div>
 
         <ResultSection title={t.profileSummary}>
           <p className="leading-8 text-gray-800">{result.profileSummary}</p>
