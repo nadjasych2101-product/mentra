@@ -562,15 +562,7 @@ function ResultView({
           </h1>
 
           <p className="text-lg text-gray-700 leading-8">{t.resultIntro}</p>
-        </div>
-
-        <ResultSection title={t.whyThisResult}>
-          <ul className="list-disc pl-6 space-y-3 text-gray-800">
-            {(result.whyThisResult ?? []).map((item: string, index: number) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </ResultSection>
+        </div>git add .
 
         <ResultSection title={t.profileSummary}>
           <p className="leading-8 text-gray-800">{result.profileSummary}</p>
