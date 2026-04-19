@@ -657,6 +657,21 @@ function ResultView({
               </div>
             ))}
 
+            {result.actionPlan?.skillsToDevelop && result.actionPlan.skillsToDevelop.length > 0 && (<div className="mb-6">
+                <h3 className="font-semibold mb-3">
+                  {isRussian ? "Какие навыки развивать" : "Skills to develop"}
+                </h3>
+                <div className="space-y-4">
+                  {result.actionPlan.skillsToDevelop.map((item: { skill: string; why: string; howToLearn: string }, i: number) => (<div key={i} className="border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                      <h4 className="font-semibold text-lg text-indigo-900">{item.skill}</h4>
+                      <p className="text-sm text-gray-600 mt-1"><span className="font-medium">Почему:</span> {item.why}</p>
+                      <p className="text-sm text-gray-600 mt-1"><span className="font-medium">С чего начать:</span> {item.howToLearn}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {result.actionPlan?.nextMove && (
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-2">

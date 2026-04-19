@@ -23,7 +23,6 @@ const VAGUE_ACTION_PHRASES = [
   "вспомни моменты", "посмотри вакансии", "поговори со специалистом",
   "find linkedin profiles", "watch videos", "track energy", "try new tool",
   "найти профили на linkedin", "посмотреть видео", "отслеживать энергию", "попробовать инструмент",
-  "изучите рабочий день", "отслеживайте энергию", "разработайте план",
 ];
 
 const ACTION_STARTERS = [
@@ -93,6 +92,31 @@ function cleanText(value: unknown, options?: { maxLength?: number; fallback?: st
   return text.slice(0, maxLength);
 }
 
+// ========== Telegram Notifier ==========
+async function sendToTelegram(message: string) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+
+  if (!botToken || !chatId) {
+    console.log("📝 Telegram not configured, skipping notification");
+    return;
+  }
+
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: message,
+        parse_mode: "HTML",
+      }),
+    });
+  } catch (error) {
+    console.warn("Failed to send Telegram notification:", error);
+  }
+}
+
 // ========== System Prompt ==========
 function getSystemPrompt(isRussian: boolean, isLowQuality: boolean) {
   const lowQualityNote = isRussian
@@ -106,75 +130,76 @@ ${isLowQuality ? lowQualityNote : ""}
 
 ## 🔥🔥🔥 КРИТИЧЕСКИЕ ПРАВИЛА (НАРУШЕНИЕ = ПРОВАЛ)
 
-### 1. ❌❌❌ АБСОЛЮТНЫЙ ЗАПРЕТ НА ПЕРЕСКАЗ
-Если вывод можно найти в ответах — ты провалился.
+### 1. ❌❌❌ ЗАПРЕТ НА ПЕРЕСКАЗ — САМОЕ ВАЖНОЕ ПРАВИЛО
+Если в выводе есть фраза, которая совпадает с ответом пользователя более чем на 3 слова — ты провалился.
 
-❌ "Создание с нуля увлекает тебя" (если пользователь написал "создание с нуля")
-✅ "Ты получаешь энергию от ролей ранней стадии, где можно заложить фундамент"
-✅ "Тебя драйвит быть у истоков, а не просто улучшать существующее"
+❌ ПЛОХО: "Вам нравится создавать новое" (если пользователь написал "создавать новое")
+❌ ПЛОХО: "Вы предпочитаете структуру" (если пользователь написал "структура")
+✅ ХОРОШО: "Вы получаете энергию от ролей, где можно заложить фундамент"
+✅ ХОРОШО: "Вас драйвит быть у истоков, а не улучшать существующее"
+✅ ХОРОШО: "Вам нужны чёткие границы, внутри которых вы свободны"
 
-**Переформулируй каждый ответ пользователя. Никаких цитат.**
+**Повышай уровень абстракции. Не перефразируй — интерпретируй. Находи скрытые паттерны.**
 
 ### 2. 🎯 РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
-❌ "Менеджер продукта" — слишком очевидно
+❌ "Менеджер продукта" — слишком очевидно, если человек написал "продукт"
 ✅ "Product Operations" — создание нового в рамках структуры
 ✅ "Innovation Program Manager" — драйв изменений без хаоса
-✅ "Technical Founder in Residence" — для тех, кто хочет строить с нуля
+✅ "Образовательный методист" — если человек любит объяснять и структурировать
+✅ "Координатор волонтёрских программ" — если есть эмпатия + организация
 
-**Предлагай роли, до которых пользователь сам бы не додумался.**
+**Предлагай роли, до которых пользователь сам бы не додумался. Не ограничивайся IT!**
 
 ### 3. ⚡ ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ
-❌ "изучите рабочий день", "отслеживайте энергию", "разработайте план"
-
 ✅ "Создайте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования"
-✅ "Напишите 1-страничный документ: 'Как я бы улучшил [конкретный продукт]'"
+✅ "Напишите 1-страничный документ: 'Как я бы улучшил [конкретный процесс]'"
 ✅ "Проведите 15-мин интервью с [РОЛЬ] и запишите 3 неочевидных инсайта"
 ✅ "Сделайте мини-презентацию о себе для роли [РОЛЬ] на 3 слайда"
 
-**Каждое действие заканчивается КОНКРЕТНЫМ АРТЕФАКТОМ.**
-
 ### 4. 🏷️ PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
 ❌ "Стратегический Инноватор" — слишком общо
-✅ "Строитель структуры в хаосе" — если человеку нужны рамки для креатива
+✅ "Строитель структуры в хаосе" — если нужны рамки для креатива
 ✅ "Креатор, которому нужны границы" — если свобода пугает
 ✅ "Системный визионер" — если стратегия + порядок
+✅ "Эмпатичный организатор" — если люди + структура
 
-**Profile type должен сразу раскрывать ГЛАВНОЕ ПРОТИВОРЕЧИЕ профиля.**
+### 5. 🌍 НЕ ОГРАНИЧИВАЙСЯ IT-СФЕРОЙ
+- Включай роли из разных областей: образование, медицина, производство, услуги, творчество, госслужба, НКО
+- Не предполагай, что пользователь хочет в IT, если он явно этого не указал
+- Если ответы позволяют — предлагай роли вне digital-сферы
 
-### 5. 📋 СХЕМА JSON
+### 6. 📋 СХЕМА JSON
 {
   "profileType": "главное противоречие (2-4 слова)",
   "profileSummary": "2-3 предложения-ИНТЕРПРЕТАЦИЯ, НЕ ПЕРЕСКАЗ",
   "whyThisResult": ["переформулированный паттерн 1", "паттерн 2", "паттерн 3"],
   "keyStrengths": ["рабочая способность 1", "способность 2", "способность 3"],
   "workStyle": "идеальная среда — интерпретация",
-  "bestFitRoles": [{"role": "НЕОЧЕВИДНАЯ роль", "explanation": "почему подходит"}],
-  "potentialMismatches": ["роль/среда 1", "роль/среда 2"],
+  "bestFitRoles": [
+    {"role": "НЕОЧЕВИДНАЯ роль", "explanation": "почему подходит именно этому человеку"}
+  ],
+  "potentialMismatches": ["роль/среда 1 с объяснением", "роль/среда 2 с объяснением"],
   "actionPlan": {
     "immediate": ["действие → КОНКРЕТНЫЙ АРТЕФАКТ", "действие 2 → АРТЕФАКТ"],
     "exploration": ["способ попробовать → АРТЕФАКТ", "способ 2 → АРТЕФАКТ"],
     "validation": ["способ проверить → АРТЕФАКТ", "способ 2 → АРТЕФАКТ"],
-    "nextMove": "карьерный шаг на 1-3 месяца"
+    "skillsToDevelop": [
+      {"skill": "конкретный навык", "why": "почему важен для этой роли", "howToLearn": "с чего начать обучение"}
+    ],
+    "nextMove": "конкретное действие с дедлайном"
   }
 }
 
-### 6. 🔥 NEXT MOVE — КОНКРЕТНОЕ ДЕЙСТВИЕ, А НЕ НАПРАВЛЕНИЕ
-❌ "Изучить роли в community building", "Посмотреть вакансии продакт-менеджера"
-✅ "Откликнуться на 3 вакансии в сфере сообществ в течение 7 дней"
-✅ "Провести 2 информационных интервью с продакт-менеджерами на этой неделе"
+### 7. 🔥 NEXT MOVE — КОНКРЕТНОЕ ДЕЙСТВИЕ
+❌ "Изучить роли", "Посмотреть вакансии"
+✅ "Откликнуться на 3 вакансии в течение 7 дней"
+✅ "Провести 2 информационных интервью на этой неделе"
 
-### 7. 💪 STRENGTHS — УНИКАЛЬНЫЕ ДЛЯ ЭТОГО ПРОФИЛЯ
+### 8. 💪 STRENGTHS — УНИКАЛЬНЫЕ ДЛЯ ЭТОГО ПРОФИЛЯ
 ❌ "креативное решение проблем", "самомотивация" — слишком обще
 ✅ "Превращение размытых брифов в структурированные планы"
 ✅ "Сохранение импульса без внешней отчётности"
-
-### 8. 🎯 WORK STYLE — ПОКАЖИ ПРОТИВОРЕЧИЕ
-❌ "предпочитает структурированную автономию"
-✅ "Нужны чёткие цели, но полная свобода в том, как их достичь — слишком много неопределённости парализует, слишком много контроля фрустрирует"
-
-### 9. 🚀 ROLES — ИЗБЕГАЙ ОЧЕВИДНЫХ СВЯЗОК
-❌ "Community Builder" (если пользователь написал "развитие сообществ")
-✅ "Developer Relations", "Product Evangelist" — смежные, неочевидные роли
+✅ "Умение объяснять сложное простыми словами"
 
 Верни ТОЛЬКО чистый JSON.`
     : `You are Mentra, a premium AI for career navigation. Your goal: SURPRISE with non-obvious but accurate insights.
@@ -183,75 +208,76 @@ ${isLowQuality ? lowQualityNote : ""}
 
 ## 🔥🔥🔥 CRITICAL RULES (VIOLATION = FAILURE)
 
-### 1. ❌❌❌ ABSOLUTE NO REGURGITATION
-If a conclusion can be found in the answers — you failed.
+### 1. ❌❌❌ ABSOLUTE NO REGURGITATION — MOST IMPORTANT RULE
+If output shares 3+ consecutive words with user's answer — you failed.
 
-❌ "You enjoy creating from scratch" (if user said "creating from scratch")
-✅ "You get energy from early-stage roles where you can lay the foundation"
-✅ "You're driven by being at the origin, not just improving"
+❌ BAD: "You enjoy creating from scratch" (if user said "creating from scratch")
+❌ BAD: "You prefer structure" (if user said "structure")
+✅ GOOD: "You get energy from early-stage roles where you can lay the foundation"
+✅ GOOD: "You're driven by being at the origin, not just improving"
+✅ GOOD: "You need clear boundaries within which you have freedom"
 
-**Rephrase every user answer. No quotes.**
+**Increase abstraction level. Don't paraphrase — interpret. Find hidden patterns.**
 
 ### 2. 🎯 ROLES MUST SURPRISE
-❌ "Product Manager" — too obvious
+❌ "Product Manager" — too obvious if user said "product"
 ✅ "Product Operations" — creation within structure
 ✅ "Innovation Program Manager" — driving change without chaos
-✅ "Technical Founder in Residence" — building from zero
+✅ "Educational Methodologist" — if user likes explaining + structure
+✅ "Volunteer Program Coordinator" — if empathy + organization
 
-**Suggest roles the user wouldn't think of themselves.**
+**Suggest roles the user wouldn't think of. Don't limit to IT!**
 
 ### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS
-❌ "study the workday", "track energy", "develop a plan"
-
 ✅ "Create a spreadsheet with 5 [ROLE] job postings and highlight 3 recurring requirements"
-✅ "Write a 1-page document: 'How I would improve [specific product]'"
+✅ "Write a 1-page document: 'How I would improve [specific process]'"
 ✅ "Conduct a 15-min interview with a [ROLE] and note 3 non-obvious insights"
 ✅ "Create a 3-slide mini-pitch about yourself for a [ROLE] role"
-
-**Every action must end with a CONCRETE ARTIFACT.**
 
 ### 4. 🏷️ PROFILE TYPE = CORE CONTRADICTION
 ❌ "Strategic Innovator" — too generic
 ✅ "Structure Builder in Chaos" — if creativity needs boundaries
 ✅ "Creator Who Needs Guardrails" — if freedom is scary
 ✅ "Systematic Visionary" — if strategy + order
+✅ "Empathetic Organizer" — if people + structure
 
-**Profile type must reveal the CORE CONTRADICTION.**
+### 5. 🌍 DON'T LIMIT TO IT
+- Include roles from various domains: education, healthcare, manufacturing, services, creative, government, non-profit
+- Don't assume user wants IT unless explicitly stated
+- Suggest non-digital roles when answers allow
 
-### 5. 📋 JSON SCHEMA
+### 6. 📋 JSON SCHEMA
 {
   "profileType": "core contradiction (2-4 words)",
   "profileSummary": "2-3 sentences of INTERPRETATION, NOT REPETITION",
   "whyThisResult": ["rephrased pattern 1", "pattern 2", "pattern 3"],
   "keyStrengths": ["work capability 1", "capability 2", "capability 3"],
   "workStyle": "ideal environment — interpretation",
-  "bestFitRoles": [{"role": "NON-OBVIOUS role", "explanation": "why it fits"}],
-  "potentialMismatches": ["role/environment 1", "role/environment 2"],
+  "bestFitRoles": [
+    {"role": "NON-OBVIOUS role", "explanation": "why it fits THIS person"}
+  ],
+  "potentialMismatches": ["role/environment 1 with explanation", "role/environment 2 with explanation"],
   "actionPlan": {
     "immediate": ["action → CONCRETE ARTIFACT", "action 2 → ARTIFACT"],
     "exploration": ["way to try → ARTIFACT", "way 2 → ARTIFACT"],
     "validation": ["way to test → ARTIFACT", "way 2 → ARTIFACT"],
-    "nextMove": "career move for 1-3 months"
+    "skillsToDevelop": [
+      {"skill": "specific skill", "why": "why it matters for this role", "howToLearn": "where to start learning"}
+    ],
+    "nextMove": "concrete action with deadline"
   }
 }
 
-### 6. 🔥 NEXT MOVE — CONCRETE ACTION, NOT DIRECTION
-❌ "Explore community building roles", "Look into product management"
-✅ "Apply to 3 community-related roles in the next 7 days"
-✅ "Reach out to 2 Product Managers for informational interviews this week"
+### 7. 🔥 NEXT MOVE — CONCRETE ACTION
+❌ "Explore roles", "Look into jobs"
+✅ "Apply to 3 roles within 7 days"
+✅ "Conduct 2 informational interviews this week"
 
-### 7. 💪 STRENGTHS — UNIQUE TO THIS PROFILE
+### 8. 💪 STRENGTHS — UNIQUE TO THIS PROFILE
 ❌ "creative problem-solving", "self-motivation" — too generic
 ✅ "Translating ambiguous briefs into structured plans"
 ✅ "Maintaining momentum without external accountability"
-
-### 8. 🎯 WORK STYLE — SHOW THE CONTRADICTION
-❌ "prefers structured autonomy"
-✅ "Needs clear goals, but full freedom in how to achieve them — too much ambiguity paralyses, too much control frustrates"
-
-### 9. 🚀 ROLES — AVOID OBVIOUS MATCHES
-❌ "Community Builder" (if user said "community building")
-✅ "Developer Relations", "Product Evangelist" — adjacent, surprising
+✅ "Explaining complex concepts in simple terms"
 
 Return ONLY clean JSON.`;
 }
@@ -279,7 +305,7 @@ async function callGroq(prompt: string, isRussian: boolean, answersQuality: any)
         { role: "user", content: prompt },
       ],
       temperature: 0.9,
-      max_tokens: 2500,
+      max_tokens: 3000,
     });
 
     const content = response.choices[0].message.content;
@@ -322,7 +348,7 @@ async function callDeepSeek(prompt: string, isRussian: boolean, answersQuality: 
         { role: "user", content: prompt },
       ],
       temperature: 0.9,
-      max_tokens: 2500,
+      max_tokens: 3000,
     });
 
     const content = response.choices[0].message.content;
@@ -350,12 +376,13 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
   const isLowQuality = avgLength < 50 || emptyCount > 3;
 
   const hasAnalysis = /analy|анализ|данные|data|pattern|паттерн/i.test(allText);
-  const hasPeople = /people|люд|команд|team|клиент|client|support|поддерж/i.test(allText);
+  const hasPeople = /people|люд|команд|team|клиент|client|support|поддерж|помогать|объяснять/i.test(allText);
   const hasCreate = /creat|твор|созда|дизайн|design|brand|бренд|концеп/i.test(allText);
-  const hasStructure = /struct|структур|порядок|организ|process|процесс/i.test(allText);
+  const hasStructure = /struct|структур|порядок|организ|process|процесс|predict/i.test(allText);
   const hasAutonomy = /autonom|автоном|свобод|независим|flexib|гибк/i.test(allText);
   const needsStructure = hasCreate && hasStructure;
   const avoidsChaos = /chaos|хаос|uncertain|неопредел/i.test(allText);
+  const likesExplaining = /объяснять|обуч|teaching|explain|учить/i.test(allText);
 
   let profileType = "";
   let roles: Array<{ role: string; explanation: string }> = [];
@@ -364,25 +391,37 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
     profileType = isRussian ? "Строитель структуры в хаосе" : "Structure Builder in Chaos";
     roles = [
       { role: isRussian ? "Product Operations" : "Product Operations", explanation: isRussian ? "Создание нового в рамках структуры" : "Creation within structure" },
-      { role: isRussian ? "Innovation Program Manager" : "Innovation Program Manager", explanation: isRussian ? "Драйв изменений без хаоса" : "Driving change without chaos" },
+      { role: isRussian ? "Руководитель проектного офиса" : "PMO Lead", explanation: isRussian ? "Внедрение структуры в креативные процессы" : "Bringing structure to creative processes" },
     ];
   } else if (hasAnalysis && hasStructure) {
     profileType = isRussian ? "Системный визионер" : "Systematic Visionary";
     roles = [
-      { role: isRussian ? "Business Operations Strategist" : "Business Operations Strategist", explanation: isRussian ? "Анализ + стратегия в рамках процессов" : "Analysis + strategy within processes" },
-      { role: isRussian ? "Technical Program Manager" : "Technical Program Manager", explanation: isRussian ? "Системное мышление для сложных проектов" : "Systems thinking for complex projects" },
+      { role: isRussian ? "Бизнес-аналитик" : "Business Analyst", explanation: isRussian ? "Анализ + стратегия в рамках процессов" : "Analysis + strategy within processes" },
+      { role: isRussian ? "Методист образовательных программ" : "Educational Methodologist", explanation: isRussian ? "Структурирование знаний" : "Structuring knowledge" },
+    ];
+  } else if (hasPeople && likesExplaining) {
+    profileType = isRussian ? "Эмпатичный наставник" : "Empathetic Mentor";
+    roles = [
+      { role: isRussian ? "Координатор волонтёров" : "Volunteer Coordinator", explanation: isRussian ? "Организация и поддержка людей" : "Organizing and supporting people" },
+      { role: isRussian ? "Специалист по адаптации персонала" : "Onboarding Specialist", explanation: isRussian ? "Помощь новичкам освоиться" : "Helping newcomers adjust" },
+    ];
+  } else if (hasPeople && !hasCreate) {
+    profileType = isRussian ? "Коммуникатор-поддержка" : "Supportive Communicator";
+    roles = [
+      { role: isRussian ? "Customer Success" : "Customer Success", explanation: isRussian ? "Помощь клиентам" : "Helping clients" },
+      { role: isRussian ? "Социальный работник" : "Social Worker", explanation: isRussian ? "Поддержка людей в трудных ситуациях" : "Supporting people in difficult situations" },
     ];
   } else if (hasCreate && hasAutonomy && avoidsChaos) {
     profileType = isRussian ? "Креатор, которому нужны границы" : "Creator Who Needs Guardrails";
     roles = [
-      { role: isRussian ? "Design Operations" : "Design Operations", explanation: isRussian ? "Креатив в структурированной среде" : "Creativity in structured environment" },
-      { role: isRussian ? "Creative Producer" : "Creative Producer", explanation: isRussian ? "Управление креативными проектами" : "Managing creative projects" },
+      { role: isRussian ? "Арт-директор в найме" : "In-house Art Director", explanation: isRussian ? "Креатив в структурированной среде" : "Creativity in structured environment" },
+      { role: isRussian ? "Редактор издательства" : "Publishing Editor", explanation: isRussian ? "Работа с текстами в рамках" : "Working with texts within frameworks" },
     ];
   } else {
-    profileType = isRussian ? "Универсал-стратег" : "Strategic Generalist";
+    profileType = isRussian ? "Универсал-практик" : "Practical Generalist";
     roles = [
-      { role: isRussian ? "Chief of Staff" : "Chief of Staff", explanation: isRussian ? "Стратегия + операции" : "Strategy + operations" },
-      { role: isRussian ? "Business Operations" : "Business Operations", explanation: isRussian ? "Улучшение процессов" : "Process improvement" },
+      { role: isRussian ? "Координатор проектов" : "Project Coordinator", explanation: isRussian ? "Организация и контроль" : "Organization and control" },
+      { role: isRussian ? "Специалист по улучшениям" : "Improvement Specialist", explanation: isRussian ? "Оптимизация процессов" : "Process optimization" },
     ];
   }
 
@@ -391,17 +430,17 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
   return {
     profileType,
     profileSummary: isRussian
-      ? `Ты получаешь энергию от ${hasCreate ? "создания нового" : "улучшения существующего"}, но тебе нужны чёткие рамки для эффективной работы.`
-      : `You get energy from ${hasCreate ? "creating new things" : "improving existing systems"}, but you need clear boundaries to work effectively.`,
+      ? `Ты получаешь энергию от ${hasCreate ? "создания нового" : "улучшения существующего"}, но тебе нужны чёткие рамки для эффективной работы. ${hasPeople ? "Тебе важно взаимодействие с людьми и возможность помогать." : ""}`
+      : `You get energy from ${hasCreate ? "creating new things" : "improving existing systems"}, but you need clear boundaries to work effectively. ${hasPeople ? "People interaction and helping matters to you." : ""}`,
     whyThisResult: isRussian
-      ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для креатива", "Ты ценишь автономию в рамках процессов"]
-      : ["You're driven by creation, not chaos", "You need structure for creativity", "You value autonomy within processes"],
+      ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для эффективности", hasPeople ? "Тебе важно приносить пользу людям" : "Ты ценишь автономию в рамках процессов"]
+      : ["You're driven by creation, not chaos", "You need structure for effectiveness", hasPeople ? "Making a difference for people matters to you" : "You value autonomy within processes"],
     keyStrengths: isRussian
-      ? ["Превращение идей в структурированные планы", "Работа в рамках с автономией", "Создание порядка из хаоса"]
-      : ["Turning ideas into structured plans", "Working within frameworks with autonomy", "Creating order from chaos"],
+      ? ["Превращение идей в структурированные планы", "Работа в рамках с автономией", hasPeople ? "Умение объяснять сложное простыми словами" : "Создание порядка из хаоса"]
+      : ["Turning ideas into structured plans", "Working within frameworks with autonomy", hasPeople ? "Explaining complex concepts simply" : "Creating order from chaos"],
     workStyle: isRussian
-      ? `Среда с чёткими границами, но свободой внутри них. Минимум неопределённости, максимум автономии.`
-      : `Environment with clear boundaries but freedom within. Minimal uncertainty, maximum autonomy.`,
+      ? `Среда с чёткими границами, но свободой внутри них. Минимум неопределённости, максимум автономии.${hasPeople ? " Возможность взаимодействовать и помогать людям." : ""}`
+      : `Environment with clear boundaries but freedom within. Minimal uncertainty, maximum autonomy.${hasPeople ? " Ability to interact and help people." : ""}`,
     bestFitRoles: roles,
     potentialMismatches: isRussian
       ? ["Полностью неструктурированные стартапы", "Жёстко регламентированные роли без автономии"]
@@ -416,6 +455,18 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
       validation: isRussian
         ? [`Сделайте мини-презентацию о себе для роли ${roleExample} на 3 слайда`, `Покажите презентацию знакомому из индустрии для обратной связи`]
         : [`Create a 3-slide mini-pitch about yourself for a ${roleExample} role`, `Share the pitch with someone in the industry for feedback`],
+      skillsToDevelop: [
+        {
+          skill: isRussian ? "Коммуникация и презентация" : "Communication and presentation",
+          why: isRussian ? "Умение доносить идеи критически важно для этой роли" : "Ability to convey ideas is critical for this role",
+          howToLearn: isRussian ? "Запишите 2-минутное видео с объяснением любой идеи и покажите другу" : "Record a 2-min video explaining any idea and show it to a friend"
+        },
+        {
+          skill: isRussian ? "Аналитическое мышление" : "Analytical thinking",
+          why: isRussian ? "Помогает видеть паттерны и принимать решения" : "Helps spot patterns and make decisions",
+          howToLearn: isRussian ? "Пройдите бесплатный курс 'Data-driven decision making' на Coursera" : "Take free 'Data-driven decision making' course on Coursera"
+        },
+      ],
       nextMove: isRussian
         ? `Подайся на 3 вакансии "${roleExample}" в течение 7 дней или проведи 2 информационных интервью`
         : `Apply to 3 "${roleExample}" roles in the next 7 days or conduct 2 informational interviews`,
@@ -497,6 +548,15 @@ export async function POST(req: NextRequest) {
     if (!rawResult) {
       console.log("📋 Using smart fallback");
       const fallbackResult = generateSmartFallback(language, answers, qualityInfo);
+
+      // Отправляем уведомление в Telegram
+      await sendToTelegram(
+        `🆕 Новый анализ (fallback)\n` +
+        `🌐 Язык: ${language}\n` +
+        `📊 Качество: ${isLowQuality ? "низкое" : "среднее"}\n` +
+        `👤 Профиль: ${fallbackResult.profileType}`
+      );
+
       return NextResponse.json({
         ...fallbackResult,
         provider: "fallback",
@@ -508,60 +568,70 @@ export async function POST(req: NextRequest) {
     const normalized = {
       profileType: cleanText(rawResult?.profileType, {
         maxLength: 60,
-        fallback: isRussian ? "Универсал-стратег" : "Strategic Generalist",
+        fallback: isRussian ? "Универсал-практик" : "Practical Generalist",
       }),
       profileSummary: cleanText(rawResult?.profileSummary, {
-        maxLength: 350,
+        maxLength: 400,
         fallback: isRussian ? "Ты получаешь энергию от создания нового, но тебе нужны чёткие рамки." : "You get energy from creating, but need clear boundaries.",
       }),
       whyThisResult: cleanList(rawResult?.whyThisResult, {
         maxItems: 3,
-        maxLength: 180,
+        maxLength: 200,
         removeGeneric: true,
       }),
       keyStrengths: cleanList(rawResult?.keyStrengths, {
         maxItems: 3,
-        maxLength: 140,
+        maxLength: 160,
         removeGeneric: true,
       }),
       workStyle: cleanText(rawResult?.workStyle, {
-        maxLength: 350,
+        maxLength: 400,
         fallback: isRussian ? "Среда с чёткими границами и свободой внутри." : "Clear boundaries with freedom within.",
       }),
       bestFitRoles: Array.isArray(rawResult?.bestFitRoles)
         ? rawResult.bestFitRoles
             .map((item: any) => ({
-              role: cleanText(item?.role, { maxLength: 80 }),
-              explanation: cleanText(item?.explanation, { maxLength: 250 }),
+              role: cleanText(item?.role, { maxLength: 100 }),
+              explanation: cleanText(item?.explanation, { maxLength: 300 }),
             }))
             .filter((item: { role: string; explanation: string }) => item.role && item.explanation)
-            .slice(0, 3)
+            .slice(0, 5)
         : [],
       potentialMismatches: cleanList(rawResult?.potentialMismatches, {
         maxItems: 2,
-        maxLength: 180,
+        maxLength: 200,
       }),
       actionPlan: {
         immediate: cleanList(rawResult?.actionPlan?.immediate, {
           maxItems: 3,
-          maxLength: 200,
+          maxLength: 250,
           requireAction: true,
           removeVague: true,
         }),
         exploration: cleanList(rawResult?.actionPlan?.exploration, {
           maxItems: 3,
-          maxLength: 200,
+          maxLength: 250,
           requireAction: true,
           removeVague: true,
         }),
         validation: cleanList(rawResult?.actionPlan?.validation, {
           maxItems: 3,
-          maxLength: 200,
+          maxLength: 250,
           requireAction: true,
           removeVague: true,
         }),
+        skillsToDevelop: Array.isArray(rawResult?.actionPlan?.skillsToDevelop)
+          ? rawResult.actionPlan.skillsToDevelop
+              .map((item: any) => ({
+                skill: cleanText(item?.skill, { maxLength: 80 }),
+                why: cleanText(item?.why, { maxLength: 200 }),
+                howToLearn: cleanText(item?.howToLearn, { maxLength: 200 }),
+              }))
+              .filter((item: any) => item.skill && item.why && item.howToLearn)
+              .slice(0, 3)
+          : [],
         nextMove: cleanText(rawResult?.actionPlan?.nextMove, {
-          maxLength: 250,
+          maxLength: 300,
           fallback: isRussian ? "Проведи 3 информационных интервью в течение месяца." : "Conduct 3 informational interviews within a month.",
         }),
       },
@@ -570,8 +640,8 @@ export async function POST(req: NextRequest) {
     // Fallback для пустых полей
     if (normalized.whyThisResult.length < 3) {
       normalized.whyThisResult = isRussian
-        ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для креатива", "Ты ценишь автономию в рамках процессов"]
-        : ["You're driven by creation, not chaos", "You need structure for creativity", "You value autonomy within processes"];
+        ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для эффективности", "Ты ценишь автономию в рамках процессов"]
+        : ["You're driven by creation, not chaos", "You need structure for effectiveness", "You value autonomy within processes"];
     }
 
     if (normalized.keyStrengths.length < 3) {
@@ -605,6 +675,16 @@ export async function POST(req: NextRequest) {
         : [`Create a mini-pitch for ${roleExample}`, `Get feedback`];
     }
 
+    if (!normalized.actionPlan.skillsToDevelop.length) {
+      normalized.actionPlan.skillsToDevelop = [
+        {
+          skill: isRussian ? "Коммуникация" : "Communication",
+          why: isRussian ? "Умение доносить идеи" : "Ability to convey ideas",
+          howToLearn: isRussian ? "Практикуйтесь объяснять сложное простыми словами" : "Practice explaining complex things simply"
+        },
+      ];
+    }
+
     if (!normalized.actionPlan.nextMove) {
       const roleExample = normalized.bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
       normalized.actionPlan.nextMove = isRussian
@@ -613,6 +693,17 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`✅ Analysis complete, provider: ${provider}, profile: ${normalized.profileType}`);
+
+    // Отправляем уведомление в Telegram
+    const rolesList = normalized.bestFitRoles.map((r: any) => r.role).join(", ");
+    await sendToTelegram(
+      `✅ <b>Новый анализ!</b>\n` +
+      `🤖 Провайдер: ${provider}\n` +
+      `🌐 Язык: ${language}\n` +
+      `👤 Профиль: ${normalized.profileType}\n` +
+      `💼 Роли: ${rolesList}\n` +
+      `📊 Качество: ${isLowQuality ? "низкое" : "высокое"}`
+    );
 
     return NextResponse.json({
       ...normalized,
