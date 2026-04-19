@@ -14,6 +14,11 @@ export type AnalysisResult = {
     immediate: string[];
     exploration: string[];
     validation: string[];
+    skillsToDevelop?: Array<{
+          skill: string;
+          why: string;
+          howToLearn: string;
+        }>;
     nextMove: string;
   };
 
