@@ -625,53 +625,71 @@ function ResultView({
           title={isRussian ? "План действий" : "Action Plan"}
         >
           <div className="space-y-6">
-            {[
-              {
-                title: isRussian ? "Начать сейчас" : "Start now",
-                items: result.actionPlan?.immediate ?? [],
-              },
-              {
-                title: isRussian
-                  ? "Попробовать направления"
-                  : "Explore directions",
-                items: result.actionPlan?.exploration ?? [],
-              },
-              {
-                title: isRussian
-                  ? "Проверить, подходит ли"
-                  : "Validate fit",
-                items: result.actionPlan?.validation ?? [],
-              },
-            ].map((section: { title: string; items: string[] }, i: number) => (
-              <div key={i}>
-                {section.items && section.items.length > 0 && (
-                  <>
-                    <h3 className="font-semibold mb-2">{section.title}</h3>
-                    <ul className="list-disc pl-6 space-y-2">
-                      {section.items.map((item: string, j: number) => (
-                        <li key={j}>{item}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+            {/* Start now */}
+            {result.actionPlan?.immediate && result.actionPlan.immediate.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">
+                  {isRussian ? "Начать сейчас" : "Start now"}
+                </h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  {result.actionPlan.immediate.map((item: string, j: number) => (
+                    <li key={j}>{item}</li>
+                  ))}
+                </ul>
               </div>
-            ))}
+            )}
 
-            {result.actionPlan?.skillsToDevelop && result.actionPlan.skillsToDevelop.length > 0 && (<div className="mb-6">
+            {/* Explore directions */}
+            {result.actionPlan?.exploration && result.actionPlan.exploration.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">
+                  {isRussian ? "Попробовать направления" : "Explore directions"}
+                </h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  {result.actionPlan.exploration.map((item: string, j: number) => (
+                    <li key={j}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Validate fit */}
+            {result.actionPlan?.validation && result.actionPlan.validation.length > 0 && (
+              <div>
+                <h3 className="font-semibold mb-2">
+                  {isRussian ? "Проверить, подходит ли" : "Validate fit"}
+                </h3>
+                <ul className="list-disc pl-6 space-y-2">
+                  {result.actionPlan.validation.map((item: string, j: number) => (
+                    <li key={j}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Skills to develop */}
+            {result.actionPlan?.skillsToDevelop && result.actionPlan.skillsToDevelop.length > 0 && (
+              <div>
                 <h3 className="font-semibold mb-3">
                   {isRussian ? "Какие навыки развивать" : "Skills to develop"}
                 </h3>
                 <div className="space-y-4">
-                  {result.actionPlan.skillsToDevelop.map((item: { skill: string; why: string; howToLearn: string }, i: number) => (<div key={i} className="border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                  {result.actionPlan.skillsToDevelop.map((item: { skill: string; why: string; howToLearn: string }, i: number) => (
+                    <div key={i} className="border rounded-2xl p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
                       <h4 className="font-semibold text-lg text-indigo-900">{item.skill}</h4>
-                      <p className="text-sm text-gray-600 mt-1"><span className="font-medium">Почему:</span> {item.why}</p>
-                      <p className="text-sm text-gray-600 mt-1"><span className="font-medium">С чего начать:</span> {item.howToLearn}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium">{isRussian ? "Почему:" : "Why:"}</span> {item.why}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium">{isRussian ? "С чего начать:" : "How to start:"}</span> {item.howToLearn}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* Next move */}
             {result.actionPlan?.nextMove && (
               <div className="border-t pt-4">
                 <h3 className="font-semibold mb-2">
@@ -879,7 +897,6 @@ export default function HomePage() {
         if (!confirmed) return;
       }
 
-      // 🔥 ВАЖНО: При смене языка в режиме квиза — сбрасываем ВСЁ
       if (viewState === "quiz") {
         setLanguage(nextLanguage);
         setStep(0);
