@@ -4,24 +4,24 @@ export type AnalysisResult = {
   whyThisResult: string[];
   keyStrengths: string[];
   workStyle: string;
-  bestFitRoles: {
+  bestFitRoles: Array<{
     role: string;
     explanation: string;
-  }[];
+  }>;
   potentialMismatches: string[];
   recommendedNextStep: string;
   actionPlan: {
     immediate: string[];
     exploration: string[];
     validation: string[];
-    skillsToDevelop?: Array<{
+    skillsToDevelop: Array<{
       skill: string;
       why: string;
       howToLearn: string;
     }>;
     nextMove: string;
   };
-  provider?: string;
+  provider?: "groq" | "deepseek" | "fallback";
   _note?: string;
-  confidence?: string;
+  confidence?: "low" | "medium" | "high";
 };
