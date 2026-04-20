@@ -177,7 +177,7 @@ ${isLowQuality ? lowQualityNote : ""}
 **Повышай уровень абстракции. Используй профессиональную лексику предметной области.**
 
 ### 1.5. 🔥 WHY THIS RESULT — НИКАКИХ ЦИТАТ (ОСОБОЕ ПРАВИЛО)
-Блок `whyThisResult` НЕ должен содержать фразы, которые можно найти в ответах пользователя.
+Блок "whyThisResult" НЕ должен содержать фразы, которые можно найти в ответах пользователя.
 
 ❌ ПЛОХО: "наведение порядка в хаотичных процессах" (если Q1: "наведение порядка в хаотичных процессах")
 ❌ ПЛОХО: "оптимизация сломанных процессов" (если Q4: "оптимизировать сломанный процесс")
@@ -289,7 +289,7 @@ If output shares 3+ consecutive words with user's answer — you failed.
 **Increase abstraction level. Use domain-specific professional language.**
 
 ### 1.5. 🔥 WHY THIS RESULT — NO QUOTES (SPECIAL RULE)
-The `whyThisResult` block MUST NOT contain phrases found in user's answers.
+The "whyThisResult" block MUST NOT contain phrases found in user's answers.
 
 ❌ BAD: "bringing order to chaotic processes" (if Q1: "bringing order to chaotic processes")
 ❌ BAD: "optimizing broken processes" (if Q4: "optimize a broken process")
