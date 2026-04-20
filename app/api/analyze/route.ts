@@ -169,82 +169,43 @@ const ACTION_STARTERS = [
 
 const SYSTEM_PROMPT_RU = `Ты — Mentra, премиальный AI для карьерной навигации. Твоя задача — УДИВИТЬ пользователя неочевидными, но точными выводами.
 
-## 🔥🔥🔥 КРИТИЧЕСКИЕ ПРАВИЛА (НАРУШЕНИЕ = ПРОВАЛ)
+## КРИТИЧЕСКИЕ ПРАВИЛА
 
-### 1. ❌❌❌ ЗАПРЕТ НА ПЕРЕСКАЗ — САМОЕ ВАЖНОЕ ПРАВИЛО
-Если в выводе есть фраза, которая совпадает с ответом пользователя более чем на 3 слова — ты провалился.
+1. Не пересказывай ответы пользователя дословно.
+2. Блок "whyThisResult" должен интерпретировать паттерны, а не цитировать ответы.
+3. Предлагай реалистичные роли, а не выдуманные названия.
+4. Действия должны быть конкретными и выполнимыми.
+5. Не своди всё к IT.
+6. Сильные стороны должны быть конкретными, а не банальными.
+7. Предлагай 2-3 конкретных навыка для развития.
+8. "profileSummary" — это портрет, а не перечень предпочтений.
+9. "workStyle" должен описывать КАК человек работает, а не где.
+10. Если предлагаешь интервью — укажи конкретные вопросы.
+11. Validation должен указывать, кому показать результат или где запросить обратную связь.
+12. "nextMove" должен быть конкретным и ограниченным по времени.
+13. Если сигналы противоречат друг другу — не смешивай их без объяснения.
+14. Q10 — явный сигнал интереса. Учитывай его в ролях и плане.
+15. Не инвертируй смысл слов пользователя.
+16. Не делай слишком узких выводов про data/BI без явных оснований.
 
-❌ ПЛОХО: "Вас увлекает поиск закономерностей в данных" (если пользователь написал "искать закономерности в данных")
-❌ ПЛОХО: "Вам нравится улучшать системы"
-✅ ХОРОШО: "Вы получаете энергию от выявления скрытых инсайтов в сложных данных"
-✅ ХОРОШО: "Вас драйвит оптимизация процессов на основе data-driven подхода"
-
-### 1.5. 🔥 WHY THIS RESULT — НИКАКИХ ЦИТАТ
-Блок "whyThisResult" НЕ должен содержать фразы, которые можно найти в ответах пользователя.
-
-### 2. 🎯 РОЛИ ДОЛЖНЫ БЫТЬ УМЕСТНЫМИ
-Не предлагай слишком узкие или выдуманные роли. Используй реалистичные карьерные направления.
-
-### 3. ⚡ ACTION PLAN — КОНКРЕТИКА
-Все действия должны быть выполнимыми, конкретными и не абстрактными.
-
-### 4. 🏷️ PROFILE TYPE
-Должен быть коротким, ясным и не слишком общим.
-
-### 5. 🌍 НЕ ОГРАНИЧИВАЙСЯ IT
-Подстраивайся под ответы, не навязывай одну сферу.
-
-### 6. 💪 STRENGTHS
-Сильные стороны должны быть специфичны, а не банальны.
-
-### 7. 📚 SKILLS TO DEVELOP
-Предлагай 2-3 конкретных навыка, связанных с ролями.
-
-### 8. 📋 PROFILE SUMMARY
-Это портрет, а не пересказ ответов.
-
-### 9. 🎯 WORK STYLE
-Описывай, КАК человек работает, а не где.
-
-### 10. 🔍 EXPLORATION
-Если предлагаешь интервью — уточняй, какие вопросы задать.
-
-### 11. ✅ VALIDATION
-Указывай, кому показать результат или у кого просить обратную связь.
-
-### 12. 🚀 NEXT MOVE
-Должен быть конкретным и с понятным временным горизонтом.
-
-### 13. 🚨 ОБРАБОТКА ПРОТИВОРЕЧИЙ
-Если сигналы противоречат друг другу — не смешивай их без объяснения.
-
-### 14. 🎯 ПРИОРИТЕТ Q10
-Последний вопрос — явный сигнал интереса. Учитывай его в ролях и плане.
-
-### 15. 🔄 НЕ ИНВЕРТИРУЙ СМЫСЛ
-Если пользователь говорит, что комфортно чувствует себя в хаосе — не пиши, что хаос его парализует.
-
-### 16. 📉 ОСТОРОЖНО С DATA/IT
-Не делай узких выводов про BI/data, если этого нет в ответах.
-
-## 📋 СХЕМА JSON
+## JSON СХЕМА
 {
   "profileType": "главное противоречие (2-4 слова)",
-  "profileSummary": "2-3 предложения-ПОРТРЕТ, НЕ ПЕРЕСКАЗ",
-  "recommendedNextStep": "один ясный следующий шаг, который можно сделать в ближайшие 24–72 часа",
+  "profileSummary": "2-3 предложения-портрет",
+  "recommendedNextStep": "один ясный шаг на 24-72 часа",
   "whyThisResult": ["паттерн 1", "паттерн 2", "паттерн 3"],
-  "keyStrengths": ["способность 1", "способность 2", "способность 3"],
-  "workStyle": "КАК вы работаете, а не где",
+  "keyStrengths": ["сильная сторона 1", "сильная сторона 2", "сильная сторона 3"],
+  "workStyle": "как человек работает",
   "bestFitRoles": [
-    {"role": "реалистичная роль", "explanation": "почему подходит"}
+    { "role": "реалистичная роль", "explanation": "почему подходит" }
   ],
-  "potentialMismatches": ["роль/среда 1", "роль/среда 2"],
+  "potentialMismatches": ["несовпадение 1", "несовпадение 2"],
   "actionPlan": {
     "immediate": ["действие 1", "действие 2"],
     "exploration": ["исследование 1", "исследование 2"],
     "validation": ["проверка 1", "проверка 2"],
     "skillsToDevelop": [
-      {"skill": "навык", "why": "почему", "howToLearn": "как начать"}
+      { "skill": "навык", "why": "почему важен", "howToLearn": "как начать" }
     ],
     "nextMove": "следующий шаг"
   }
@@ -276,13 +237,13 @@ const SYSTEM_PROMPT_EN = `You are Mentra, a premium AI for career navigation. Yo
 ## JSON SCHEMA
 {
   "profileType": "core contradiction (2-4 words)",
-  "profileSummary": "2-3 sentences portrait, not repetition",
+  "profileSummary": "2-3 sentence portrait",
   "recommendedNextStep": "one clear next step within 24-72 hours",
   "whyThisResult": ["pattern 1", "pattern 2", "pattern 3"],
   "keyStrengths": ["strength 1", "strength 2", "strength 3"],
   "workStyle": "HOW the person works",
   "bestFitRoles": [
-    {"role": "realistic role", "explanation": "why it fits"}
+    { "role": "realistic role", "explanation": "why it fits" }
   ],
   "potentialMismatches": ["mismatch 1", "mismatch 2"],
   "actionPlan": {
@@ -290,18 +251,13 @@ const SYSTEM_PROMPT_EN = `You are Mentra, a premium AI for career navigation. Yo
     "exploration": ["exploration 1", "exploration 2"],
     "validation": ["validation 1", "validation 2"],
     "skillsToDevelop": [
-      {"skill": "skill", "why": "why it matters", "howToLearn": "how to start"}
+      { "skill": "skill", "why": "why it matters", "howToLearn": "how to start" }
     ],
     "nextMove": "next move"
   }
 }
 
 Return ONLY clean JSON.`;
-
-function detectAnswerLanguage(text: string): string {
-  if (!text.trim()) return "empty";
-  return /[а-яА-ЯёЁ]/.test(text) ? "ru" : "en";
-}
 
 function escapeHtml(value: string): string {
   return value
@@ -326,9 +282,8 @@ function isVagueAction(text: string): boolean {
 
 function hasActionStarter(text: string): boolean {
   const lower = text.toLowerCase().trim();
-  return ACTION_STARTERS.some(
-    (verb) => lower.startsWith(verb) || lower.includes(` ${verb}`)
-  );
+  const normalized = lower.replace(/^[-•\d.)\s]+/, "");
+  return ACTION_STARTERS.some((verb) => normalized.startsWith(verb));
 }
 
 function cleanList(
@@ -416,15 +371,18 @@ async function sendToTelegram(message: string): Promise<void> {
 
 function buildPrompt(
   language: Language,
-  answers: string[],
-  questions: Array<string | { question: string }>
+  answers: readonly string[],
+  questions: readonly (string | { question: string })[]
 ): string {
+  const emptyAnswer = language === "ru" ? "(нет ответа)" : "(no answer)";
+
   const formattedAnswersWithQuestions = answers
     .map((answer, index) => {
       const questionObj = questions[index];
       const question =
         typeof questionObj === "string" ? questionObj : questionObj.question;
-      return `Q${index + 1}: ${question}\nA${index + 1}: ${answer || "(no answer)"}`;
+
+      return `Q${index + 1}: ${question}\nA${index + 1}: ${answer || emptyAnswer}`;
     })
     .join("\n\n");
 
@@ -439,6 +397,7 @@ function summarizeAnswersQuality(answers: string[]): AnswersQualitySummary {
     const trimmed = a.trim();
     return trimmed.length > 0 && trimmed.length < 30;
   }).length;
+
   const avgLength =
     answers.reduce((sum, a) => sum + a.trim().length, 0) / answers.length;
 
@@ -482,7 +441,9 @@ function buildFallbackResponse(
 ): MentraResponse {
   const isRussian = language === "ru";
   const isLowQuality =
-    answersQuality.avgLength < 50 || answersQuality.emptyCount > 3;
+    answersQuality.avgLength < 50 ||
+    answersQuality.emptyCount > 3 ||
+    answersQuality.shortCount >= 5;
 
   let profileType = "";
   let bestFitRoles: BestFitRole[] = [];
@@ -623,6 +584,8 @@ function buildFallbackResponse(
     ];
   }
 
+  const roleExample = bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
+
   const chaosInterpretation = signals.q8Chaos
     ? isRussian
       ? "Вы не теряетесь в динамике и умеете собирать полезный фокус даже там, где много движения и неопределённости."
@@ -635,7 +598,7 @@ function buildFallbackResponse(
         ? "Лучше всего вы работаете там, где есть понятная цель и свобода в способе её достижения."
         : "You work best when there is a clear goal and freedom in how to reach it.";
 
-  const response: MentraResponse = {
+  return {
     profileType,
     profileSummary: isRussian
       ? signals.q10Jewelry
@@ -1085,8 +1048,6 @@ function buildFallbackResponse(
         : "⚠️ Analysis based on short answers."
       : undefined,
   };
-
-  return response;
 }
 
 function generateSmartFallback(
@@ -1110,8 +1071,11 @@ async function callGroq(
   try {
     console.log("🤖 Calling Groq (primary)...");
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
     const isLowQuality =
-      answersQuality.avgLength < 50 || answersQuality.emptyCount > 3;
+      answersQuality.avgLength < 50 ||
+      answersQuality.emptyCount > 3 ||
+      answersQuality.shortCount >= 5;
 
     const response = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -1158,7 +1122,9 @@ async function callDeepSeek(
     });
 
     const isLowQuality =
-      answersQuality.avgLength < 50 || answersQuality.emptyCount > 3;
+      answersQuality.avgLength < 50 ||
+      answersQuality.emptyCount > 3 ||
+      answersQuality.shortCount >= 5;
 
     const response = await deepseek.chat.completions.create({
       model: "deepseek-chat",
@@ -1272,7 +1238,7 @@ function normalizeModelResult(
         removeVague: true,
       }),
       skillsToDevelop: Array.isArray(rawResult.actionPlan?.skillsToDevelop)
-        ? rawResult.actionPlan!.skillsToDevelop
+        ? rawResult.actionPlan.skillsToDevelop
             .map((item: unknown) => {
               const skillItem = item as {
                 skill?: unknown;
@@ -1332,7 +1298,8 @@ function normalizeModelResult(
   }
 
   if (!normalized.actionPlan.skillsToDevelop.length) {
-    normalized.actionPlan.skillsToDevelop = smartFallback.actionPlan.skillsToDevelop;
+    normalized.actionPlan.skillsToDevelop =
+      smartFallback.actionPlan.skillsToDevelop;
   }
 
   if (!normalized.actionPlan.nextMove) {
@@ -1366,7 +1333,8 @@ export async function POST(req: NextRequest) {
     }
 
     const isRussian = language === "ru";
-    const questions = questionsByLanguage[language];
+    const questions =
+      questionsByLanguage[language] ?? questionsByLanguage.en;
 
     if (process.env.NODE_ENV !== "production") {
       console.log("📝 Received answers:");
@@ -1379,8 +1347,15 @@ export async function POST(req: NextRequest) {
 
     const answersQuality = summarizeAnswersQuality(answers);
     const isLowQuality =
-      answersQuality.avgLength < 50 || answersQuality.emptyCount > 3;
-    const smartFallback = generateSmartFallback(language, answers, answersQuality);
+      answersQuality.avgLength < 50 ||
+      answersQuality.emptyCount > 3 ||
+      answersQuality.shortCount >= 5;
+
+    const smartFallback = generateSmartFallback(
+      language,
+      answers,
+      answersQuality
+    );
 
     console.log(
       `📊 Quality: ${answersQuality.emptyCount} empty, ${answersQuality.shortCount} short, avg length: ${Math.round(
@@ -1435,6 +1410,7 @@ export async function POST(req: NextRequest) {
     );
 
     const rolesList = normalized.bestFitRoles.map((r) => r.role).join(", ");
+
     await sendToTelegram(
       `✅ <b>Новый анализ!</b>\n` +
         `🤖 Провайдер: ${provider}\n` +
@@ -1454,6 +1430,7 @@ export async function POST(req: NextRequest) {
     console.error("💥 Fatal error:", error);
     const message =
       error instanceof Error ? error.message : "Unknown server error";
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
