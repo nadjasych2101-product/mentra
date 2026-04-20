@@ -141,7 +141,6 @@ const ui = {
     keyStrengths: "Сильные стороны",
     workStyle: "Стиль работы",
     potentialMismatches: "Что может не подойти",
-    recommendedNextStep: "Следующий шаг",
     tryAgain: "Пройти ещё раз",
     backToStart: "На старт",
     backToTop: "Наверх",
