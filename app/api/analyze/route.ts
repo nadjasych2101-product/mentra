@@ -99,6 +99,35 @@ function cleanText(value: unknown, options?: { maxLength?: number; fallback?: st
   return text.slice(0, maxLength);
 }
 
+// ========== Склонение русских ролей ==========
+function declineRole(role: string, preposition: "with" | "for" = "with"): string {
+  if (preposition === "with") {
+    const declensions: Record<string, string> = {
+      "Продуктовый менеджер": "продуктовым менеджером",
+      "Бизнес-аналитик": "бизнес-аналитиком",
+      "Методист образовательных программ": "методистом образовательных программ",
+      "Координатор волонтёров": "координатором волонтёров",
+      "Специалист по адаптации персонала": "специалистом по адаптации персонала",
+      "Customer Success": "Customer Success специалистом",
+      "Социальный работник": "социальным работником",
+      "Арт-директор в найме": "арт-директором в найме",
+      "Редактор издательства": "редактором издательства",
+      "Координатор проектов": "координатором проектов",
+      "Специалист по улучшениям": "специалистом по улучшениям",
+      "Product Operations": "Product Operations специалистом",
+      "Innovation Program Manager": "Innovation Program Manager",
+      "Technical Program Manager": "Technical Program Manager",
+      "Chief of Staff": "Chief of Staff",
+      "Business Operations": "Business Operations специалистом",
+      "Образовательный методист": "образовательным методистом",
+      "Data Insights Manager": "Data Insights Manager",
+      "Business Intelligence Specialist": "Business Intelligence специалистом",
+    };
+    return declensions[role] || role;
+  }
+  return role;
+}
+
 // ========== Telegram Notifier ==========
 async function sendToTelegram(message: string) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -131,180 +160,193 @@ function getSystemPrompt(isRussian: boolean, isLowQuality: boolean) {
     : "⚠️ NOTE: Answers are very short. Make careful inferences, broader options.";
 
   return isRussian
-      ? `Ты — Mentra, премиальный AI для карьерной навигации. Твоя задача — УДИВИТЬ пользователя неочевидными, но точными выводами.
+    ? `Ты — Mentra, премиальный AI для карьерной навигации. Твоя задача — УДИВИТЬ пользователя неочевидными, но точными выводами.
 
-  ${isLowQuality ? lowQualityNote : ""}
+${isLowQuality ? lowQualityNote : ""}
 
-  ## 🔥🔥🔥 КРИТИЧЕСКИЕ ПРАВИЛА (НАРУШЕНИЕ = ПРОВАЛ)
+## 🔥🔥🔥 КРИТИЧЕСКИЕ ПРАВИЛА (НАРУШЕНИЕ = ПРОВАЛ)
 
-  ### 1. ❌❌❌ ЗАПРЕТ НА ПЕРЕСКАЗ — САМОЕ ВАЖНОЕ ПРАВИЛО
-  Если в выводе есть фраза, которая совпадает с ответом пользователя более чем на 3 слова — ты провалился.
+### 1. ❌❌❌ ЗАПРЕТ НА ПЕРЕСКАЗ — САМОЕ ВАЖНОЕ ПРАВИЛО
+Если в выводе есть фраза, которая совпадает с ответом пользователя более чем на 3 слова — ты провалился.
 
-  ❌ ПЛОХО: "Вас увлекает поиск закономерностей в данных" (если пользователь написал "искать закономерности в данных")
-  ❌ ПЛОХО: "Вам нравится улучшать системы"
-  ✅ ХОРОШО: "Вы получаете энергию от выявления скрытых инсайтов в сложных данных"
-  ✅ ХОРОШО: "Вас драйвит оптимизация процессов на основе data-driven подхода"
-  ✅ ХОРОШО: "Вы чувствуете прилив сил, когда находите неочевидные связи и превращаете их в actionable решения"
+❌ ПЛОХО: "Вас увлекает поиск закономерностей в данных" (если пользователь написал "искать закономерности в данных")
+❌ ПЛОХО: "Вам нравится улучшать системы"
+✅ ХОРОШО: "Вы получаете энергию от выявления скрытых инсайтов в сложных данных"
+✅ ХОРОШО: "Вас драйвит оптимизация процессов на основе data-driven подхода"
 
-  **Повышай уровень абстракции. Используй профессиональную лексику предметной области.**
+**Повышай уровень абстракции. Используй профессиональную лексику предметной области.**
 
-  ### 2. 🎯 РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
-  ❌ "Аналитик данных" — слишком очевидно
-  ✅ "Product Operations" — анализ + улучшение процессов
-  ✅ "Business Intelligence Specialist" — data-driven стратегия
-  ✅ "Data Insights Manager" — превращение данных в бизнес-решения
+### 2. 🎯 РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
+❌ "Аналитик данных" — слишком очевидно
+✅ "Product Operations" — анализ + улучшение процессов
+✅ "Business Intelligence Specialist" — data-driven стратегия
+✅ "Data Insights Manager" — превращение данных в бизнес-решения
 
-  ### 3. ⚡ ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ
-  ✅ "Создайте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования"
-  ✅ "Напишите 1-страничный документ: 'Как я бы улучшил [конкретный процесс] на основе данных'"
-  ✅ "Проведите 15-мин интервью с [РОЛЬ] и запишите 3 неочевидных инсайта"
+### 3. ⚡ ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ + ОБЪЯСНЕНИЕ ЗАЧЕМ
+Для каждого действия указывай:
+- Что сделать (конкретный артефакт)
+- Зачем это нужно (какую проблему решает)
 
-  ### 4. 🏷️ PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
-  ❌ "Стратегический Инноватор" — слишком общо
-  ✅ "Строитель эффективности в данных" — data + оптимизация
-  ✅ "Системный аналитик-улучшатель" — анализ + внедрение
-  ✅ "Data-driven оптимизатор" — данные + улучшения
+❌ "Создайте таблицу с 5 вакансиями"
+✅ "Составьте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования — это покажет, какие навыки реально нужны рынку, а не просто описаны в книгах"
 
-  ### 5. 🌍 НЕ ОГРАНИЧИВАЙСЯ IT-СФЕРОЙ
-  - Если пользователь описывает работу с людьми → предлагай роли в образовании, HR, соцработе
-  - Если пользователь описывает анализ и данные → предлагай IT и аналитические роли
-  - Адаптируйся под ответы, не навязывай одну сферу
+### 4. 🏷️ PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
+❌ "Стратегический Инноватор" — слишком общо
+✅ "Строитель эффективности в данных" — data + оптимизация
+✅ "Создатель, которому нужны границы" — креатив + структура
 
-  ### 6. 💪 STRENGTHS — УНИКАЛЬНЫЕ ДЛЯ ЭТОГО ПРОФИЛЯ
-  ❌ "креативное решение проблем", "самомотивация" — слишком обще
-  ✅ "Превращение размытых брифов в структурированные планы"
-  ✅ "Умение объяснять сложные концепции простыми словами"
-  ✅ "Выявление скрытых инсайтов в хаотичных данных"
+### 5. 🌍 НЕ ОГРАНИЧИВАЙСЯ IT-СФЕРОЙ
+- Если пользователь описывает работу с людьми → предлагай роли в образовании, HR, соцработе
+- Если пользователь описывает анализ и данные → предлагай IT и аналитические роли
+- Адаптируйся под ответы, не навязывай одну сферу
 
-  ### 7. 📚 SKILLS TO DEVELOP — СПЕЦИФИЧНЫЕ ДЛЯ РОЛИ
-  Для IT/аналитики:
-  - "SQL и работа с базами данных"
-  - "Визуализация данных (Tableau/Power BI/Looker)"
-  - "A/B тестирование и статистический анализ"
-  - "Python для анализа данных (pandas, numpy)"
+### 6. 💪 STRENGTHS — УНИКАЛЬНЫЕ ДЛЯ ЭТОГО ПРОФИЛЯ
+❌ "креативное решение проблем", "самомотивация" — слишком обще
+✅ "Превращение размытых брифов в структурированные планы"
+✅ "Умение объяснять сложные концепции простыми словами"
 
-  Для работы с людьми:
-  - "Фасилитация и модерация групп"
-  - "Коучинговые техники"
-  - "Проектирование образовательных программ"
+### 7. 📚 SKILLS TO DEVELOP — СПЕЦИФИЧНЫЕ ДЛЯ РОЛИ
+Для IT/аналитики: SQL, визуализация данных, A/B тестирование, Python
+Для работы с людьми: фасилитация, коучинговые техники, проектирование обучения
 
-  **Выбирай навыки, релевантные предложенным ролям.**
+### 8. 📋 PROFILE SUMMARY — НЕ ПЕРЕСКАЗ, А ПОРТРЕТ
+❌ "Увлекается созданием нового, любит структуру, но свободу"
+✅ "Создатель, которому нужны границы — вы расцветаете, когда есть чёткая цель, но полная свобода в том, как её достичь. Рутина вас душит, хаос парализует."
 
-  ### 8. 📋 СХЕМА JSON
-  {
-    "profileType": "главное противоречие (2-4 слова)",
-    "profileSummary": "2-3 предложения-ИНТЕРПРЕТАЦИЯ, НЕ ПЕРЕСКАЗ",
-    "whyThisResult": ["переформулированный паттерн 1", "паттерн 2", "паттерн 3"],
-    "keyStrengths": ["рабочая способность 1", "способность 2", "способность 3"],
-    "workStyle": "идеальная среда — интерпретация",
-    "bestFitRoles": [
-      {"role": "НЕОЧЕВИДНАЯ роль", "explanation": "почему подходит именно этому человеку"}
+### 9. 🎯 WORK STYLE — ЭТО НЕ СРЕДА, А КАК ВЫ РАБОТАЕТЕ
+❌ "Идеальная среда — свобода действий"
+✅ "Вы работаете итерациями: генерация идей → логический фильтр → реализация. Лучшая продуктивность — утром, в тишине, с одним фокусом. Вам важно видеть прогресс и иметь право на эксперимент."
+
+### 10. 🔍 EXPLORATION — УТОЧНЯЙ ЦЕЛЬ ИНТЕРВЬЮ
+❌ "Проведите интервью с [РОЛЬ]"
+✅ "Проведите 15-минутное интервью с [РОЛЬ]. Спросите: 'Что самое неожиданное в вашей работе?' и 'Какой навык вы считаете самым недооценённым?' — это покажет реальность профессии."
+
+### 11. ✅ VALIDATION — УТОЧНЯЙ КОНТЕКСТ
+❌ "Сделайте презентацию и получите обратную связь"
+✅ "Создайте мини-презентацию (3 слайда) о том, как бы вы улучшили конкретный продукт/процесс. Покажите знакомому из индустрии или в тематическом чате."
+
+### 12. 🚀 NEXT MOVE — УЧИТЫВАЙ УРОВЕНЬ
+Если пользователь только исследует направление — предлагай небольшие, конкретные проекты с измеримым результатом.
+
+## 📋 СХЕМА JSON
+{
+  "profileType": "главное противоречие (2-4 слова)",
+  "profileSummary": "2-3 предложения-ПОРТРЕТ, НЕ ПЕРЕСКАЗ",
+  "whyThisResult": ["переформулированный паттерн 1", "паттерн 2", "паттерн 3"],
+  "keyStrengths": ["рабочая способность 1", "способность 2", "способность 3"],
+  "workStyle": "КАК вы работаете, а не где — итерации, ритм, стиль принятия решений",
+  "bestFitRoles": [
+    {"role": "НЕОЧЕВИДНАЯ роль", "explanation": "почему подходит именно этому человеку"}
+  ],
+  "potentialMismatches": ["роль/среда 1 с объяснением", "роль/среда 2 с объяснением"],
+  "actionPlan": {
+    "immediate": ["действие → КОНКРЕТНЫЙ АРТЕФАКТ + ЗАЧЕМ", "действие 2"],
+    "exploration": ["интервью с конкретными вопросами", "способ 2"],
+    "validation": ["презентация + кому показать", "способ 2"],
+    "skillsToDevelop": [
+      {"skill": "конкретный навык", "why": "почему важен", "howToLearn": "с чего начать"}
     ],
-    "potentialMismatches": ["роль/среда 1 с объяснением", "роль/среда 2 с объяснением"],
-    "actionPlan": {
-      "immediate": ["действие → КОНКРЕТНЫЙ АРТЕФАКТ", "действие 2 → АРТЕФАКТ"],
-      "exploration": ["способ попробовать → АРТЕФАКТ", "способ 2 → АРТЕФАКТ"],
-      "validation": ["способ проверить → АРТЕФАКТ", "способ 2 → АРТЕФАКТ"],
-      "skillsToDevelop": [
-        {"skill": "конкретный навык для этой роли", "why": "почему важен", "howToLearn": "с чего начать"}
-      ],
-      "nextMove": "конкретное действие с дедлайном"
-    }
+    "nextMove": "конкретное действие с дедлайном, учитывающее уровень пользователя"
   }
+}
 
-  ### 9. 🔥 NEXT MOVE — КОНКРЕТНОЕ ДЕЙСТВИЕ С ДЕДЛАЙНОМ
-  ❌ "Изучить роли", "Посмотреть вакансии"
-  ✅ "Откликнуться на 3 вакансии в течение 7 дней"
-  ✅ "Провести 2 информационных интервью на этой неделе"
+### 13. 🔥 NEXT MOVE — КОНКРЕТНОЕ ДЕЙСТВИЕ С ДЕДЛАЙНОМ
+❌ "Изучить роли", "Посмотреть вакансии"
+✅ "Откликнуться на 3 вакансии в течение 7 дней"
+✅ "Выбрать один небольшой проект и довести его до результата за 2 недели"
 
-  Верни ТОЛЬКО чистый JSON.`
+Верни ТОЛЬКО чистый JSON.`
     : `You are Mentra, a premium AI for career navigation. Your goal: SURPRISE with non-obvious but accurate insights.
 
-    ${isLowQuality ? lowQualityNote : ""}
+${isLowQuality ? lowQualityNote : ""}
 
-    ## 🔥🔥🔥 CRITICAL RULES (VIOLATION = FAILURE)
+## 🔥🔥🔥 CRITICAL RULES (VIOLATION = FAILURE)
 
-    ### 1. ❌❌❌ ABSOLUTE NO REGURGITATION
-    If output shares 3+ consecutive words with user's answer — you failed.
+### 1. ❌❌❌ ABSOLUTE NO REGURGITATION
+If output shares 3+ consecutive words with user's answer — you failed.
 
-    ❌ BAD: "You enjoy finding patterns in data" (if user said "finding patterns in data")
-    ❌ BAD: "You like improving systems"
-    ✅ GOOD: "You get energy from uncovering hidden insights in complex data"
-    ✅ GOOD: "You're driven by data-informed process optimization"
-    ✅ GOOD: "You thrive when finding non-obvious connections and turning them into actionable decisions"
+❌ BAD: "You enjoy finding patterns in data"
+✅ GOOD: "You get energy from uncovering hidden insights in complex data"
+✅ GOOD: "You're driven by data-informed process optimization"
 
-    **Increase abstraction level. Use domain-specific professional language.**
+**Increase abstraction level. Use domain-specific professional language.**
 
-    ### 2. 🎯 ROLES MUST SURPRISE
-    ❌ "Data Analyst" — too obvious
-    ✅ "Product Operations" — analysis + process improvement
-    ✅ "Business Intelligence Specialist" — data-driven strategy
-    ✅ "Data Insights Manager" — turning data into business decisions
+### 2. 🎯 ROLES MUST SURPRISE
+❌ "Data Analyst" — too obvious
+✅ "Product Operations" — analysis + process improvement
+✅ "Business Intelligence Specialist" — data-driven strategy
 
-    ### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS
-    ✅ "Create a spreadsheet with 5 [ROLE] job postings and highlight 3 recurring requirements"
-    ✅ "Write a 1-page document: 'How I would improve [specific process] with data'"
-    ✅ "Conduct a 15-min interview with a [ROLE] and note 3 non-obvious insights"
+### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS + EXPLAIN WHY
+For each action, specify WHAT to create and WHY it matters.
 
-    ### 4. 🏷️ PROFILE TYPE = CORE CONTRADICTION
-    ❌ "Strategic Innovator" — too generic
-    ✅ "Efficiency Builder in Data" — data + optimization
-    ✅ "Systematic Analyst-Improver" — analysis + implementation
-    ✅ "Data-Driven Optimizer" — data + improvements
+❌ "Create a spreadsheet with 5 job postings"
+✅ "Create a spreadsheet with 5 [ROLE] job postings and highlight 3 recurring requirements — this shows what skills the market actually needs"
 
-    ### 5. 🌍 DON'T LIMIT TO IT
-    - If user describes working with people → suggest education, HR, social work roles
-    - If user describes analysis and data → suggest IT and analytical roles
-    - Adapt to answers, don't force one domain
+### 4. 🏷️ PROFILE TYPE = CORE CONTRADICTION
+❌ "Strategic Innovator" — too generic
+✅ "Efficiency Builder in Data" — data + optimization
+✅ "Creator Who Needs Guardrails" — creativity + structure
 
-    ### 6. 💪 STRENGTHS — UNIQUE TO THIS PROFILE
-    ❌ "creative problem-solving", "self-motivation" — too generic
-    ✅ "Translating ambiguous briefs into structured plans"
-    ✅ "Explaining complex concepts in simple terms"
-    ✅ "Uncovering hidden insights in chaotic data"
+### 5. 🌍 DON'T LIMIT TO IT
+- People-oriented answers → education, HR, social work
+- Data/analysis answers → IT and analytical roles
 
-    ### 7. 📚 SKILLS TO DEVELOP — ROLE-SPECIFIC
-    For IT/analytics:
-    - "SQL and database management"
-    - "Data visualization (Tableau/Power BI/Looker)"
-    - "A/B testing and statistical analysis"
-    - "Python for data analysis (pandas, numpy)"
+### 6. 💪 STRENGTHS — UNIQUE TO THIS PROFILE
+❌ "creative problem-solving", "self-motivation" — too generic
+✅ "Translating ambiguous briefs into structured plans"
+✅ "Explaining complex concepts in simple terms"
 
-    For people-oriented roles:
-    - "Group facilitation and moderation"
-    - "Coaching techniques"
-    - "Educational program design"
+### 7. 📚 SKILLS TO DEVELOP — ROLE-SPECIFIC
+For IT/analytics: SQL, data visualization, A/B testing, Python
+For people-oriented: facilitation, coaching, educational design
 
-    **Choose skills relevant to suggested roles.**
+### 8. 📋 PROFILE SUMMARY — PORTRAIT, NOT REPETITION
+❌ "Enjoys creating new things, likes structure but freedom"
+✅ "A creator who needs guardrails — you thrive with clear goals but full freedom in execution. Routine drains you, chaos paralyzes you."
 
-    ### 8. 📋 JSON SCHEMA
-    {
-      "profileType": "core contradiction (2-4 words)",
-      "profileSummary": "2-3 sentences of INTERPRETATION, NOT REPETITION",
-      "whyThisResult": ["rephrased pattern 1", "pattern 2", "pattern 3"],
-      "keyStrengths": ["work capability 1", "capability 2", "capability 3"],
-      "workStyle": "ideal environment — interpretation",
-      "bestFitRoles": [
-        {"role": "NON-OBVIOUS role", "explanation": "why it fits THIS person"}
-      ],
-      "potentialMismatches": ["role/environment 1 with explanation", "role/environment 2 with explanation"],
-      "actionPlan": {
-        "immediate": ["action → CONCRETE ARTIFACT", "action 2 → ARTIFACT"],
-        "exploration": ["way to try → ARTIFACT", "way 2 → ARTIFACT"],
-        "validation": ["way to test → ARTIFACT", "way 2 → ARTIFACT"],
-        "skillsToDevelop": [
-          {"skill": "specific skill for this role", "why": "why it matters", "howToLearn": "where to start"}
-        ],
-        "nextMove": "concrete action with deadline"
-      }
-    }
+### 9. 🎯 WORK STYLE — HOW YOU WORK, NOT WHERE
+❌ "Ideal environment — freedom to create"
+✅ "You work iteratively: idea generation → logical filtering → execution. Best productivity — mornings, quiet, single focus. You need to see progress and have room to experiment."
 
-    ### 9. 🔥 NEXT MOVE — CONCRETE ACTION WITH DEADLINE
-    ❌ "Explore roles", "Look into jobs"
-    ✅ "Apply to 3 roles within 7 days"
-    ✅ "Conduct 2 informational interviews this week"
+### 10. 🔍 EXPLORATION — SPECIFY INTERVIEW QUESTIONS
+❌ "Interview a [ROLE]"
+✅ "Conduct a 15-min interview with a [ROLE]. Ask: 'What's the most surprising part of your job?' and 'What skill do you consider most underrated?' — this reveals the real profession."
 
-    Return ONLY clean JSON.`
+### 11. ✅ VALIDATION — SPECIFY CONTEXT
+❌ "Create a pitch and get feedback"
+✅ "Create a 3-slide mini-pitch about improving a specific product/process. Share it with someone in the industry or in a relevant community."
+
+### 12. 🚀 NEXT MOVE — CONSIDER USER LEVEL
+If answers suggest exploration phase — suggest small, concrete projects with measurable outcomes.
+
+## 📋 JSON SCHEMA
+{
+  "profileType": "core contradiction (2-4 words)",
+  "profileSummary": "2-3 sentences PORTRAIT, NOT REPETITION",
+  "whyThisResult": ["rephrased pattern 1", "pattern 2", "pattern 3"],
+  "keyStrengths": ["work capability 1", "capability 2", "capability 3"],
+  "workStyle": "HOW you work — iterations, rhythm, decision style",
+  "bestFitRoles": [
+    {"role": "NON-OBVIOUS role", "explanation": "why it fits THIS person"}
+  ],
+  "potentialMismatches": ["role/environment 1 with explanation", "role/environment 2"],
+  "actionPlan": {
+    "immediate": ["action → ARTIFACT + WHY", "action 2"],
+    "exploration": ["interview with specific questions", "way 2"],
+    "validation": ["pitch + who to show", "way 2"],
+    "skillsToDevelop": [
+      {"skill": "specific skill", "why": "why it matters", "howToLearn": "where to start"}
+    ],
+    "nextMove": "concrete action with deadline, considering user level"
+  }
+}
+
+### 13. 🔥 NEXT MOVE — CONCRETE ACTION WITH DEADLINE
+❌ "Explore roles", "Look into jobs"
+✅ "Apply to 3 roles within 7 days"
+✅ "Choose one small project and complete it within 2 weeks"
+
+Return ONLY clean JSON.`;
 }
 
 // ========== Groq Provider (ОСНОВНОЙ) ==========
@@ -451,35 +493,54 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
   }
 
   const roleExample = roles[0]?.role || (isRussian ? "специалист" : "specialist");
+  const roleInstrumental = isRussian ? declineRole(roleExample, "with") : roleExample;
 
   return {
     profileType,
     profileSummary: isRussian
-      ? `Ты получаешь энергию от ${hasCreate ? "создания нового" : "улучшения существующего"}, но тебе нужны чёткие рамки для эффективной работы. ${hasPeople ? "Тебе важно взаимодействие с людьми и возможность помогать." : ""}`
-      : `You get energy from ${hasCreate ? "creating new things" : "improving existing systems"}, but you need clear boundaries to work effectively. ${hasPeople ? "People interaction and helping matters to you." : ""}`,
+      ? `Создатель, которому нужны границы — вы расцветаете, когда есть чёткая цель, но полная свобода в том, как её достичь. ${hasPeople ? "Вам важно приносить пользу людям." : ""}`
+      : `A creator who needs guardrails — you thrive with clear goals but full freedom in execution. ${hasPeople ? "Making a difference matters to you." : ""}`,
     whyThisResult: isRussian
-      ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для эффективности", hasPeople ? "Тебе важно приносить пользу людям" : "Ты ценишь автономию в рамках процессов"]
-      : ["You're driven by creation, not chaos", "You need structure for effectiveness", hasPeople ? "Making a difference for people matters to you" : "You value autonomy within processes"],
+      ? ["Вы драйвитесь созданием, но хаос вас парализует", "Вам нужна структура для реализации идей", hasPeople ? "Вам важно видеть пользу для людей" : "Вы цените автономию в рамках процессов"]
+      : ["You're driven by creation, but chaos paralyzes you", "You need structure to execute ideas", hasPeople ? "Making an impact matters to you" : "You value autonomy within processes"],
     keyStrengths: isRussian
       ? ["Превращение идей в структурированные планы", "Работа в рамках с автономией", hasPeople ? "Умение объяснять сложное простыми словами" : "Создание порядка из хаоса"]
       : ["Turning ideas into structured plans", "Working within frameworks with autonomy", hasPeople ? "Explaining complex concepts simply" : "Creating order from chaos"],
     workStyle: isRussian
-      ? `Среда с чёткими границами, но свободой внутри них. Минимум неопределённости, максимум автономии.${hasPeople ? " Возможность взаимодействовать и помогать людям." : ""}`
-      : `Environment with clear boundaries but freedom within. Minimal uncertainty, maximum autonomy.${hasPeople ? " Ability to interact and help people." : ""}`,
+      ? `Вы работаете итерациями: генерация идей → логический фильтр → реализация. Лучшая продуктивность — в тишине, с одним фокусом. Вам важно видеть прогресс и иметь право на эксперимент.`
+      : `You work iteratively: idea generation → logical filtering → execution. Best productivity — quiet, single focus. You need to see progress and have room to experiment.`,
     bestFitRoles: roles,
     potentialMismatches: isRussian
-      ? ["Полностью неструктурированные стартапы", "Жёстко регламентированные роли без автономии"]
-      : ["Completely unstructured startups", "Rigidly defined roles without autonomy"],
+      ? ["Полностью неструктурированные стартапы — хаос вас парализует", "Жёстко регламентированные роли без права на эксперимент"]
+      : ["Completely unstructured startups — chaos paralyzes you", "Rigidly defined roles without room to experiment"],
     actionPlan: {
       immediate: isRussian
-        ? [`Создайте таблицу с 5 вакансиями "${roleExample}" и выделите 3 повторяющихся требования`, `Напишите 1-страничный документ о том, как вы бы улучшили процесс в текущей работе`]
-        : [`Create a spreadsheet with 5 "${roleExample}" job postings and highlight 3 recurring requirements`, `Write a 1-page document on how you'd improve a process in your current work`],
+        ? [
+            `Составьте таблицу с 5 вакансиями "${roleExample}" и выделите 3 повторяющихся требования — это покажет, какие навыки реально нужны рынку`,
+            `Напишите 1-страничный документ о том, как бы вы улучшили конкретный процесс — это станет основой для портфолио`
+          ]
+        : [
+            `Create a spreadsheet with 5 "${roleExample}" job postings and highlight 3 recurring requirements — this shows what skills the market actually needs`,
+            `Write a 1-page document on how you'd improve a specific process — this becomes portfolio material`
+          ],
       exploration: isRussian
-        ? [`Проведите 15-мин интервью с ${roleExample} и запишите 3 неочевидных инсайта`, `Проанализируйте 3 профиля ${roleExample} на LinkedIn и найдите общие паттерны`]
-        : [`Conduct a 15-min interview with a ${roleExample} and note 3 non-obvious insights`, `Analyze 3 ${roleExample} LinkedIn profiles and find common patterns`],
+        ? [
+            `Проведите 15-мин интервью с ${roleInstrumental}. Спросите: "Что самое неожиданное в вашей работе?" и "Какой навык вы считаете самым недооценённым?"`,
+            `Проанализируйте 3 профиля "${roleExample}" на LinkedIn и найдите общие паттерны в их карьерном пути`
+          ]
+        : [
+            `Conduct a 15-min interview with a ${roleExample}. Ask: "What's the most surprising part of your job?" and "What skill do you consider most underrated?"`,
+            `Analyze 3 "${roleExample}" LinkedIn profiles and find common patterns in their career paths`
+          ],
       validation: isRussian
-        ? [`Сделайте мини-презентацию о себе для роли ${roleExample} на 3 слайда`, `Покажите презентацию знакомому из индустрии для обратной связи`]
-        : [`Create a 3-slide mini-pitch about yourself for a ${roleExample} role`, `Share the pitch with someone in the industry for feedback`],
+        ? [
+            `Создайте мини-презентацию (3 слайда) о том, как бы вы улучшили конкретный продукт/процесс. Покажите знакомому из индустрии или в тематическом чате`,
+            `Попросите обратную связь: "Что здесь самое слабое место?"`
+          ]
+        : [
+            `Create a 3-slide mini-pitch about improving a specific product/process. Share it with someone in the industry or in a relevant community`,
+            `Ask for feedback: "What's the weakest part here?"`
+          ],
       skillsToDevelop: [
         {
           skill: isRussian ? "Коммуникация и презентация" : "Communication and presentation",
@@ -493,8 +554,8 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
         },
       ],
       nextMove: isRussian
-        ? `Подайся на 3 вакансии "${roleExample}" в течение 7 дней или проведи 2 информационных интервью`
-        : `Apply to 3 "${roleExample}" roles in the next 7 days or conduct 2 informational interviews`,
+        ? `Выберите ОДИН небольшой проект (улучшить процесс на текущей работе или создать прототип идеи) и доведите его до результата за 2 недели. Главное — закончить.`
+        : `Choose ONE small project (improve a process at work or prototype an idea) and complete it within 2 weeks. Focus on finishing, not perfection.`,
     },
     _note: isLowQuality
       ? (isRussian ? "⚠️ Анализ основан на коротких ответах." : "⚠️ Analysis based on short answers.")
@@ -518,7 +579,7 @@ export async function POST(req: NextRequest) {
 
     console.log("📝 Received answers:");
     answers.forEach((ans, i) => {
-      console.log(`  Q${i + 1}: ${ans.substring(0, 50)}${ans.length > 50 ? "..." : ""}`);
+      console.log(`  Q${i + 1}: ${ans.substring(0, 100)}${ans.length > 100 ? "..." : ""}`);
     });
 
     const answersQuality = answers.map((a) => ({
@@ -574,12 +635,11 @@ export async function POST(req: NextRequest) {
       console.log("📋 Using smart fallback");
       const fallbackResult = generateSmartFallback(language, answers, qualityInfo);
 
-      // Отправляем уведомление в Telegram
       await sendToTelegram(
         `🆕 Новый анализ (fallback)\n` +
         `🌐 Язык: ${language}\n` +
         `📊 Качество: ${isLowQuality ? "низкое" : "среднее"}\n` +
-        `👤 Профиль: ${fallbackResult.profileType}`
+        `👤 Профиль: ${escapeHtml(fallbackResult.profileType)}`
       );
 
       return NextResponse.json({
@@ -597,7 +657,7 @@ export async function POST(req: NextRequest) {
       }),
       profileSummary: cleanText(rawResult?.profileSummary, {
         maxLength: 400,
-        fallback: isRussian ? "Ты получаешь энергию от создания нового, но тебе нужны чёткие рамки." : "You get energy from creating, but need clear boundaries.",
+        fallback: isRussian ? "Создатель, которому нужны границы — вы расцветаете, когда есть чёткая цель, но полная свобода в том, как её достичь." : "A creator who needs guardrails — you thrive with clear goals but full freedom in execution.",
       }),
       whyThisResult: cleanList(rawResult?.whyThisResult, {
         maxItems: 3,
@@ -611,7 +671,7 @@ export async function POST(req: NextRequest) {
       }),
       workStyle: cleanText(rawResult?.workStyle, {
         maxLength: 400,
-        fallback: isRussian ? "Среда с чёткими границами и свободой внутри." : "Clear boundaries with freedom within.",
+        fallback: isRussian ? "Вы работаете итерациями: идеи → фильтр → реализация. Лучшая продуктивность — в тишине, с одним фокусом." : "You work iteratively: ideas → filter → execution. Best productivity — quiet, single focus.",
       }),
       bestFitRoles: Array.isArray(rawResult?.bestFitRoles)
         ? rawResult.bestFitRoles
@@ -629,19 +689,19 @@ export async function POST(req: NextRequest) {
       actionPlan: {
         immediate: cleanList(rawResult?.actionPlan?.immediate, {
           maxItems: 3,
-          maxLength: 250,
+          maxLength: 300,
           requireAction: true,
           removeVague: true,
         }),
         exploration: cleanList(rawResult?.actionPlan?.exploration, {
           maxItems: 3,
-          maxLength: 250,
+          maxLength: 300,
           requireAction: true,
           removeVague: true,
         }),
         validation: cleanList(rawResult?.actionPlan?.validation, {
           maxItems: 3,
-          maxLength: 250,
+          maxLength: 300,
           requireAction: true,
           removeVague: true,
         }),
@@ -656,8 +716,8 @@ export async function POST(req: NextRequest) {
               .slice(0, 3)
           : [],
         nextMove: cleanText(rawResult?.actionPlan?.nextMove, {
-          maxLength: 300,
-          fallback: isRussian ? "Проведи 3 информационных интервью в течение месяца." : "Conduct 3 informational interviews within a month.",
+          maxLength: 350,
+          fallback: isRussian ? "Выберите ОДИН небольшой проект и доведите его до результата за 2 недели." : "Choose ONE small project and complete it within 2 weeks.",
         }),
       },
     };
@@ -665,14 +725,14 @@ export async function POST(req: NextRequest) {
     // Fallback для пустых полей
     if (normalized.whyThisResult.length < 3) {
       normalized.whyThisResult = isRussian
-        ? ["Ты драйвишься созданием, но не хаосом", "Тебе нужна структура для эффективности", "Ты ценишь автономию в рамках процессов"]
-        : ["You're driven by creation, not chaos", "You need structure for effectiveness", "You value autonomy within processes"];
+        ? ["Вы драйвитесь созданием, но хаос вас парализует", "Вам нужна структура для реализации идей", "Вы ценишь автономию в рамках процессов"]
+        : ["You're driven by creation, but chaos paralyzes you", "You need structure to execute ideas", "You value autonomy within processes"];
     }
 
     if (normalized.keyStrengths.length < 3) {
       normalized.keyStrengths = isRussian
-        ? ["Превращение идей в планы", "Работа в рамках с автономией", "Создание порядка"]
-        : ["Turning ideas into plans", "Working within frameworks", "Creating order"];
+        ? ["Превращение идей в структурированные планы", "Работа в рамках с автономией", "Создание порядка из хаоса"]
+        : ["Turning ideas into structured plans", "Working within frameworks", "Creating order from chaos"];
     }
 
     if (normalized.bestFitRoles.length < 2) {
@@ -682,51 +742,62 @@ export async function POST(req: NextRequest) {
 
     if (!normalized.actionPlan.immediate.length) {
       normalized.actionPlan.immediate = isRussian
-        ? ["Создайте таблицу с 5 вакансиями и выделите требования", "Напишите 1-страничный документ об улучшении процесса"]
-        : ["Create a spreadsheet with 5 job postings", "Write a 1-page process improvement doc"];
+        ? [`Составьте таблицу с 5 вакансиями и выделите 3 повторяющихся требования — это покажет реальные запросы рынка`, `Напишите 1-страничный документ об улучшении процесса — это станет основой портфолио`]
+        : [`Create a spreadsheet with 5 job postings and highlight 3 recurring requirements`, `Write a 1-page process improvement doc — this becomes portfolio material`];
     }
 
     if (!normalized.actionPlan.exploration.length) {
       const roleExample = normalized.bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
+      const roleInstrumental = isRussian ? declineRole(roleExample, "with") : roleExample;
       normalized.actionPlan.exploration = isRussian
-        ? [`Проведите интервью с ${roleExample}`, `Проанализируйте профили ${roleExample}`]
-        : [`Interview a ${roleExample}`, `Analyze ${roleExample} profiles`];
+        ? [
+            `Проведите 15-мин интервью с ${roleInstrumental}. Спросите: "Что самое неожиданное в работе?" и "Какой навык самый недооценённый?"`,
+            `Проанализируйте 3 профиля "${roleExample}" на LinkedIn`
+          ]
+        : [
+            `Interview a ${roleExample}. Ask: "What's most surprising?" and "What skill is most underrated?"`,
+            `Analyze 3 "${roleExample}" LinkedIn profiles`
+          ];
     }
 
     if (!normalized.actionPlan.validation.length) {
       const roleExample = normalized.bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
       normalized.actionPlan.validation = isRussian
-        ? [`Сделайте мини-презентацию для роли ${roleExample}`, `Получите обратную связь`]
-        : [`Create a mini-pitch for ${roleExample}`, `Get feedback`];
+        ? [
+            `Создайте мини-презентацию (3 слайда) для роли "${roleExample}". Покажите знакомому из индустрии или в тематическом чате`,
+            `Попросите обратную связь: "Что здесь самое слабое место?"`
+          ]
+        : [
+            `Create a 3-slide mini-pitch for a ${roleExample} role. Share with someone in the industry`,
+            `Ask for feedback: "What's the weakest part?"`
+          ];
     }
 
     if (!normalized.actionPlan.skillsToDevelop.length) {
       normalized.actionPlan.skillsToDevelop = [
         {
-          skill: isRussian ? "Коммуникация" : "Communication",
-          why: isRussian ? "Умение доносить идеи" : "Ability to convey ideas",
-          howToLearn: isRussian ? "Практикуйтесь объяснять сложное простыми словами" : "Practice explaining complex things simply"
+          skill: isRussian ? "Коммуникация и презентация" : "Communication and presentation",
+          why: isRussian ? "Умение доносить идеи критически важно" : "Ability to convey ideas is critical",
+          howToLearn: isRussian ? "Запишите 2-мин видео с объяснением идеи и покажите другу" : "Record a 2-min video explaining an idea and show a friend"
         },
       ];
     }
 
     if (!normalized.actionPlan.nextMove) {
-      const roleExample = normalized.bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
       normalized.actionPlan.nextMove = isRussian
-        ? `Подайся на 3 вакансии "${roleExample}" за 7 дней или проведи 2 интервью`
-        : `Apply to 3 "${roleExample}" roles in 7 days or conduct 2 interviews`;
+        ? `Выберите ОДИН небольшой проект и доведите его до результата за 2 недели. Главное — закончить.`
+        : `Choose ONE small project and complete it within 2 weeks. Focus on finishing.`;
     }
 
     console.log(`✅ Analysis complete, provider: ${provider}, profile: ${normalized.profileType}`);
 
-    // Отправляем уведомление в Telegram
     const rolesList = normalized.bestFitRoles.map((r: any) => r.role).join(", ");
     await sendToTelegram(
       `✅ <b>Новый анализ!</b>\n` +
       `🤖 Провайдер: ${provider}\n` +
       `🌐 Язык: ${language}\n` +
-      `👤 Профиль: ${normalized.profileType}\n` +
-      `💼 Роли: ${rolesList}\n` +
+      `👤 Профиль: ${escapeHtml(normalized.profileType)}\n` +
+      `💼 Роли: ${escapeHtml(rolesList)}\n` +
       `📊 Качество: ${isLowQuality ? "низкое" : "высокое"}`
     );
 
