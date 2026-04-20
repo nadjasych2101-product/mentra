@@ -176,16 +176,27 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Повышай уровень абстракции. Используй профессиональную лексику предметной области.**
 
-### 1.5. 🔥 WHY THIS RESULT — НИКАКИХ ЦИТАТ (ОСОБОЕ ПРАВИЛО)
+### ❌❌❌ ЗАПРЕТ НА СМЕШАННЫЙ ЯЗЫК И КРИВОЙ ПЕРЕВОД
+- НИКОГДА не используй слова из других языков в русском тексте
+- Никаких "claro", "detalей", "input", "output" — только чистый русский язык
+- Проверяй переводы: "важность" (не "опасность"), "свобода" (не "фридом")
+- Если не знаешь точного перевода — опиши смысл по-русски
+- Проверяй: все слова в выводе должны быть на русском
+
+### 1.5. 🔥 WHY THIS RESULT — НИКАКИХ ЦИТАТ (УСИЛЕНО)
 Блок "whyThisResult" НЕ должен содержать фразы, которые можно найти в ответах пользователя.
 
 ❌ ПЛОХО: "наведение порядка в хаотичных процессах" (если Q1: "наведение порядка в хаотичных процессах")
 ❌ ПЛОХО: "оптимизация сломанных процессов" (если Q4: "оптимизировать сломанный процесс")
 ❌ ПЛОХО: "необходимость свободы" (если Q5: "Мне важна полная свобода")
+❌ ПЛОХО: "Работа на заводе вам не подходит" (если Q9: "не хочу на завод")
+❌ ПЛОХО: "Вам не нравится рано вставать" (если Q9: "не нравится вставать рано")
 
 ✅ ХОРОШО: "Вас драйвит превращение хаоса в работающие системы"
 ✅ ХОРОШО: "Вы чувствуете прилив сил, когда видите неэффективность и знаете, как её исправить"
 ✅ ХОРОШО: "Вам нужен простор для экспериментов в рамках понятной цели"
+✅ ХОРОШО: "Вам нужна среда, где вы управляете своим ритмом и видите результат, а не просто проводите время"
+✅ ХОРОШО: "Свободный график и возможность влиять на свой день для вас критичны"
 
 **Этот блок — интерпретация паттернов, а не список ответов пользователя.**
 
@@ -195,13 +206,30 @@ ${isLowQuality ? lowQualityNote : ""}
 ✅ "Business Intelligence Specialist" — data-driven стратегия
 ✅ "Data Insights Manager" — превращение данных в бизнес-решения
 
-### 3. ⚡ ACTION PLAN = КОНКРЕТНЫЕ АРТЕФАКТЫ + ОБЪЯСНЕНИЕ ЗАЧЕМ
+### 2.5. 🚫 РОЛИ ТОЛЬКО ИЗ СПИСКА (НОВОЕ ПРАВИЛО)
+В explanation упоминай ТОЛЬКО те роли, которые есть в bestFitRoles.
+❌ ПЛОХО: "Эта роль подходит, также вы могли бы рассмотреть DevOps"
+✅ ХОРОШО: объяснение ТОЛЬКО про ту роль, которая в списке
+
+Не вводи пользователя в заблуждение дополнительными ролями, которых нет в итоговом списке.
+
+### 3. ⚡ ACTION PLAN — КОНКРЕТНЫЕ АРТЕФАКТЫ + УЧЁТ ПРЕДПОЧТЕНИЙ
 Для каждого действия указывай:
 - Что сделать (конкретный артефакт)
 - Зачем это нужно (какую проблему решает)
+- **Учитывай предпочтения пользователя**
 
 ❌ "Создайте таблицу с 5 вакансиями"
-✅ "Составьте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования — это покажет, какие навыки реально нужны рынку, а не просто описаны в книгах"
+✅ "Составьте таблицу с 5 вакансиями [РОЛЬ] и выделите 3 повторяющихся требования — это покажет, какие навыки реально нужны рынку"
+
+**Если пользователь говорит о лени, нелюбви к скучной работе или долгим задачам:**
+- Вместо "создайте презентацию" → "Запишите 2-минутное голосовое сообщение с одной идеей"
+- Вместо "напишите документ" → "Набросайте 3 пункта в заметках телефона"
+- Вместо "проведите интервью" → "Напишите 2 вопроса в чат знакомому из этой сферы"
+- Вместо "составьте таблицу" → "Сохраните 3 вакансии в закладки и сравните их завтра"
+
+**Действия должны быть подъёмными для пользователя, а не отпугивать его.**
+**Если пользователь явно не хочет сложных действий — предлагай микродействия.**
 
 ### 4. 🏷️ PROFILE TYPE = ГЛАВНОЕ ПРОТИВОРЕЧИЕ
 ❌ "Стратегический Инноватор" — слишком общо
@@ -225,14 +253,24 @@ ${isLowQuality ? lowQualityNote : ""}
 ### 8. 📋 PROFILE SUMMARY — ПОРТРЕТ, А НЕ ПЕРЕЧЕНЬ ПРЕДПОЧТЕНИЙ
 ❌ "Вам важна полная свобода исследовать и экспериментировать" (пересказ)
 ❌ "Вы цените стабильность и смысл в своей работе" (пересказ)
+❌ "Вы любите создавать новое" (пересказ)
 ✅ "Вы расцветаете, когда есть простор для манёвра, но при этом понятна конечная цель"
 ✅ "Вам важно видеть, что ваша работа приносит реальную пользу, а не просто движет метрики"
+✅ "Ваша энергия — в запуске новых процессов и превращении идей в осязаемый результат"
 
+**ЗАПРЕЩЕНО использовать фразы, которые пользователь написал о себе.**
 **Описывай, КАК предпочтения проявляются в работе, а не просто перечисляй их.**
 
 ### 9. 🎯 WORK STYLE — ЭТО НЕ СРЕДА, А КАК ВЫ РАБОТАЕТЕ
 ❌ "Идеальная среда — свобода действий"
-✅ "Вы работаете итерациями: генерация идей → логический фильтр → реализация. Лучшая продуктивность — утром, в тишине, с одним фокусом. Вам важно видеть прогресс и иметь право на эксперимент."
+❌ "Вам подходит спокойная обстановка"
+❌ "Лучше всего работаете в быстрой и коллаборативной среде"
+✅ "Вы работаете итерациями: генерация идей → логический фильтр → реализация"
+✅ "Ваш ритм — спринты: быстрое погружение, проверка гипотез, снова итерация"
+✅ "Вы предпочитаете сначала нащупать общую картину, потом структурировать детали"
+
+**ЗАПРЕЩЕНО описывать среду (где). Описывай ТОЛЬКО стиль работы (как).**
+**Это должно быть про ритм, подход к задачам, способ принятия решений.**
 
 ### 10. 🔍 EXPLORATION — УТОЧНЯЙ ЦЕЛЬ ИНТЕРВЬЮ
 ❌ "Проведите интервью с [РОЛЬ]"
@@ -288,16 +326,27 @@ If output shares 3+ consecutive words with user's answer — you failed.
 
 **Increase abstraction level. Use domain-specific professional language.**
 
-### 1.5. 🔥 WHY THIS RESULT — NO QUOTES (SPECIAL RULE)
+### ❌❌❌ NO MIXED LANGUAGES OR BAD TRANSLATIONS
+- NEVER use words from other languages in English text
+- No Spanish, Portuguese, or other language words mixed in
+- Check translations: "importance" (not "danger" when meaning "важность")
+- If unsure about a word, rephrase in English
+- Verify: all words in output must be in English
+
+### 1.5. 🔥 WHY THIS RESULT — NO QUOTES (STRENGTHENED)
 The "whyThisResult" block MUST NOT contain phrases found in user's answers.
 
 ❌ BAD: "bringing order to chaotic processes" (if Q1: "bringing order to chaotic processes")
 ❌ BAD: "optimizing broken processes" (if Q4: "optimize a broken process")
 ❌ BAD: "need for freedom" (if Q5: "I need full freedom")
+❌ BAD: "Working in a factory doesn't suit you" (if Q9: "don't want to work in a factory")
+❌ BAD: "You don't like waking up early" (if Q9: "don't like waking up early")
 
 ✅ GOOD: "You're driven by turning chaos into working systems"
 ✅ GOOD: "You feel energized when you spot inefficiency and know how to fix it"
 ✅ GOOD: "You need room to experiment within a clear purpose"
+✅ GOOD: "You need an environment where you control your rhythm and see results, not just pass time"
+✅ GOOD: "Flexible schedule and ability to influence your day are critical for you"
 
 **This block interprets patterns, not lists user's answers.**
 
@@ -306,11 +355,27 @@ The "whyThisResult" block MUST NOT contain phrases found in user's answers.
 ✅ "Product Operations" — analysis + process improvement
 ✅ "Business Intelligence Specialist" — data-driven strategy
 
-### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS + EXPLAIN WHY
-For each action, specify WHAT to create and WHY it matters.
+### 2.5. 🚫 ROLES ONLY FROM THE LIST (NEW RULE)
+In explanation, mention ONLY the roles that are in bestFitRoles.
+❌ BAD: "This role fits, also you could consider DevOps"
+✅ GOOD: explanation ONLY about the role in the list
+
+Don't confuse the user with additional roles not in the final list.
+
+### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS + CONSIDER PREFERENCES
+For each action, specify WHAT to create and WHY it matters. **Consider user preferences.**
 
 ❌ "Create a spreadsheet with 5 job postings"
 ✅ "Create a spreadsheet with 5 [ROLE] job postings and highlight 3 recurring requirements — this shows what skills the market actually needs"
+
+**If user mentions laziness, dislike for boring work, or long tasks:**
+- Instead of "create a presentation" → "Record a 2-minute voice memo with one idea"
+- Instead of "write a document" → "Jot down 3 bullet points in your phone notes"
+- Instead of "conduct an interview" → "Send 2 questions via chat to someone in the field"
+- Instead of "create a spreadsheet" → "Bookmark 3 job postings and compare them tomorrow"
+
+**Actions should feel doable, not intimidating.**
+**If user clearly doesn't want complex actions — suggest micro-actions.**
 
 ### 4. 🏷️ PROFILE TYPE = CORE CONTRADICTION
 ❌ "Strategic Innovator" — too generic
@@ -333,14 +398,24 @@ For people-oriented: facilitation, coaching, educational design
 ### 8. 📋 PROFILE SUMMARY — PORTRAIT, NOT PREFERENCE LIST
 ❌ "You value full freedom to explore and experiment" (regurgitation)
 ❌ "You value stability and meaning in your work" (regurgitation)
+❌ "You love creating new things" (regurgitation)
 ✅ "You thrive when there's room to maneuver, but with a clear end goal in sight"
 ✅ "You need to see that your work makes a real difference, not just moves metrics"
+✅ "Your energy comes from launching new processes and turning ideas into tangible results"
 
+**NEVER use phrases the user wrote about themselves.**
 **Describe HOW preferences show up in work, not just list them.**
 
 ### 9. 🎯 WORK STYLE — HOW YOU WORK, NOT WHERE
 ❌ "Ideal environment — freedom to create"
-✅ "You work iteratively: idea generation → logical filtering → execution. Best productivity — mornings, quiet, single focus. You need to see progress and have room to experiment."
+❌ "You thrive in calm settings"
+❌ "You work best in fast, collaborative environments"
+✅ "You work iteratively: idea generation → logical filtering → execution"
+✅ "Your rhythm is sprints: quick immersion, hypothesis testing, iterate again"
+✅ "You prefer to grasp the big picture first, then structure the details"
+
+**NEVER describe the environment (where). Describe ONLY work style (how).**
+**This should be about rhythm, approach to tasks, decision-making style.**
 
 ### 10. 🔍 EXPLORATION — SPECIFY INTERVIEW QUESTIONS
 ❌ "Interview a [ROLE]"
