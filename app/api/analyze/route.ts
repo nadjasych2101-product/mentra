@@ -176,6 +176,19 @@ ${isLowQuality ? lowQualityNote : ""}
 
 **Повышай уровень абстракции. Используй профессиональную лексику предметной области.**
 
+### 1.5. 🔥 WHY THIS RESULT — НИКАКИХ ЦИТАТ (ОСОБОЕ ПРАВИЛО)
+Блок `whyThisResult` НЕ должен содержать фразы, которые можно найти в ответах пользователя.
+
+❌ ПЛОХО: "наведение порядка в хаотичных процессах" (если Q1: "наведение порядка в хаотичных процессах")
+❌ ПЛОХО: "оптимизация сломанных процессов" (если Q4: "оптимизировать сломанный процесс")
+❌ ПЛОХО: "необходимость свободы" (если Q5: "Мне важна полная свобода")
+
+✅ ХОРОШО: "Вас драйвит превращение хаоса в работающие системы"
+✅ ХОРОШО: "Вы чувствуете прилив сил, когда видите неэффективность и знаете, как её исправить"
+✅ ХОРОШО: "Вам нужен простор для экспериментов в рамках понятной цели"
+
+**Этот блок — интерпретация паттернов, а не список ответов пользователя.**
+
 ### 2. 🎯 РОЛИ ДОЛЖНЫ УДИВЛЯТЬ
 ❌ "Аналитик данных" — слишком очевидно
 ✅ "Product Operations" — анализ + улучшение процессов
@@ -209,9 +222,13 @@ ${isLowQuality ? lowQualityNote : ""}
 Для IT/аналитики: SQL, визуализация данных, A/B тестирование, Python
 Для работы с людьми: фасилитация, коучинговые техники, проектирование обучения
 
-### 8. 📋 PROFILE SUMMARY — НЕ ПЕРЕСКАЗ, А ПОРТРЕТ
-❌ "Увлекается созданием нового, любит структуру, но свободу"
-✅ "Создатель, которому нужны границы — вы расцветаете, когда есть чёткая цель, но полная свобода в том, как её достичь. Рутина вас душит, хаос парализует."
+### 8. 📋 PROFILE SUMMARY — ПОРТРЕТ, А НЕ ПЕРЕЧЕНЬ ПРЕДПОЧТЕНИЙ
+❌ "Вам важна полная свобода исследовать и экспериментировать" (пересказ)
+❌ "Вы цените стабильность и смысл в своей работе" (пересказ)
+✅ "Вы расцветаете, когда есть простор для манёвра, но при этом понятна конечная цель"
+✅ "Вам важно видеть, что ваша работа приносит реальную пользу, а не просто движет метрики"
+
+**Описывай, КАК предпочтения проявляются в работе, а не просто перечисляй их.**
 
 ### 9. 🎯 WORK STYLE — ЭТО НЕ СРЕДА, А КАК ВЫ РАБОТАЕТЕ
 ❌ "Идеальная среда — свобода действий"
@@ -221,9 +238,9 @@ ${isLowQuality ? lowQualityNote : ""}
 ❌ "Проведите интервью с [РОЛЬ]"
 ✅ "Проведите 15-минутное интервью с [РОЛЬ]. Спросите: 'Что самое неожиданное в вашей работе?' и 'Какой навык вы считаете самым недооценённым?' — это покажет реальность профессии."
 
-### 11. ✅ VALIDATION — УТОЧНЯЙ КОНТЕКСТ
-❌ "Сделайте презентацию и получите обратную связь"
-✅ "Создайте мини-презентацию (3 слайда) о том, как бы вы улучшили конкретный продукт/процесс. Покажите знакомому из индустрии или в тематическом чате."
+### 11. ✅ VALIDATION — ВСЕГДА УКАЗЫВАЙ АДРЕСАТА
+❌ "Создайте мини-презентацию"
+✅ "Создайте мини-презентацию (3 слайда) о том, как бы вы улучшили конкретный продукт/процесс. Покажите знакомому из индустрии или в тематическом чате. Попросите: 'Что здесь самое слабое место?'"
 
 ### 12. 🚀 NEXT MOVE — УЧИТЫВАЙ УРОВЕНЬ
 Если пользователь только исследует направление — предлагай небольшие, конкретные проекты с измеримым результатом.
@@ -271,6 +288,19 @@ If output shares 3+ consecutive words with user's answer — you failed.
 
 **Increase abstraction level. Use domain-specific professional language.**
 
+### 1.5. 🔥 WHY THIS RESULT — NO QUOTES (SPECIAL RULE)
+The `whyThisResult` block MUST NOT contain phrases found in user's answers.
+
+❌ BAD: "bringing order to chaotic processes" (if Q1: "bringing order to chaotic processes")
+❌ BAD: "optimizing broken processes" (if Q4: "optimize a broken process")
+❌ BAD: "need for freedom" (if Q5: "I need full freedom")
+
+✅ GOOD: "You're driven by turning chaos into working systems"
+✅ GOOD: "You feel energized when you spot inefficiency and know how to fix it"
+✅ GOOD: "You need room to experiment within a clear purpose"
+
+**This block interprets patterns, not lists user's answers.**
+
 ### 2. 🎯 ROLES MUST SURPRISE
 ❌ "Data Analyst" — too obvious
 ✅ "Product Operations" — analysis + process improvement
@@ -300,9 +330,13 @@ For each action, specify WHAT to create and WHY it matters.
 For IT/analytics: SQL, data visualization, A/B testing, Python
 For people-oriented: facilitation, coaching, educational design
 
-### 8. 📋 PROFILE SUMMARY — PORTRAIT, NOT REPETITION
-❌ "Enjoys creating new things, likes structure but freedom"
-✅ "A creator who needs guardrails — you thrive with clear goals but full freedom in execution. Routine drains you, chaos paralyzes you."
+### 8. 📋 PROFILE SUMMARY — PORTRAIT, NOT PREFERENCE LIST
+❌ "You value full freedom to explore and experiment" (regurgitation)
+❌ "You value stability and meaning in your work" (regurgitation)
+✅ "You thrive when there's room to maneuver, but with a clear end goal in sight"
+✅ "You need to see that your work makes a real difference, not just moves metrics"
+
+**Describe HOW preferences show up in work, not just list them.**
 
 ### 9. 🎯 WORK STYLE — HOW YOU WORK, NOT WHERE
 ❌ "Ideal environment — freedom to create"
@@ -312,9 +346,9 @@ For people-oriented: facilitation, coaching, educational design
 ❌ "Interview a [ROLE]"
 ✅ "Conduct a 15-min interview with a [ROLE]. Ask: 'What's the most surprising part of your job?' and 'What skill do you consider most underrated?' — this reveals the real profession."
 
-### 11. ✅ VALIDATION — SPECIFY CONTEXT
-❌ "Create a pitch and get feedback"
-✅ "Create a 3-slide mini-pitch about improving a specific product/process. Share it with someone in the industry or in a relevant community."
+### 11. ✅ VALIDATION — ALWAYS SPECIFY WHO TO SHOW
+❌ "Create a mini-pitch"
+✅ "Create a mini-pitch (3 slides) about improving a specific product/process. Share with someone in the industry or in a relevant community. Ask: 'What's the weakest part here?'"
 
 ### 12. 🚀 NEXT MOVE — CONSIDER USER LEVEL
 If answers suggest exploration phase — suggest small, concrete projects with measurable outcomes.
