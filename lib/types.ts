@@ -1,5 +1,6 @@
 export type AnalysisResult = {
   profileSummary: string;
+  recommendedNextStep: string;
   whyThisResult: string[];
   keyStrengths: string[];
   workStyle: string;

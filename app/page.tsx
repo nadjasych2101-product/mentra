@@ -53,6 +53,7 @@ const ui = {
     keyStrengths: "Key Strengths",
     workStyle: "Work Style",
     potentialMismatches: "Potential Mismatches",
+    recommendedNextStep: "Recommended Next Step",
     tryAgain: "Try again",
     backToStart: "Back to start",
     backToTop: "Back to top",
@@ -140,6 +141,7 @@ const ui = {
     keyStrengths: "Сильные стороны",
     workStyle: "Стиль работы",
     potentialMismatches: "Что может не подойти",
+    recommendedNextStep: "Следующий шаг",
     tryAgain: "Пройти ещё раз",
     backToStart: "На старт",
     backToTop: "Наверх",
@@ -618,6 +620,12 @@ function ResultView({
                 <li key={index}>{item}</li>
               ))}
             </ul>
+          </ResultSection>
+        )}
+
+        {result.recommendedNextStep && (
+          <ResultSection title={t.recommendedNextStep}>
+            <p className="leading-8 text-gray-800">{result.recommendedNextStep}</p>
           </ResultSection>
         )}
 

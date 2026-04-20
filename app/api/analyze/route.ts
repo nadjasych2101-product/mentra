@@ -206,11 +206,12 @@ ${isLowQuality ? lowQualityNote : ""}
 ✅ "Business Intelligence Specialist" — data-driven стратегия
 ✅ "Data Insights Manager" — превращение данных в бизнес-решения
 
-### 2.5. 🚫 РОЛИ ТОЛЬКО ИЗ СПИСКА (НОВОЕ ПРАВИЛО)
-В explanation упоминай ТОЛЬКО те роли, которые есть в bestFitRoles.
-❌ ПЛОХО: "Эта роль подходит, также вы могли бы рассмотреть DevOps"
-✅ ХОРОШО: объяснение ТОЛЬКО про ту роль, которая в списке
+### 2.5. 🚫 РОЛИ ТОЛЬКО ИЗ СПИСКА — ПРОВЕРЯЙ ACTION PLAN
+В actionPlan.immediate, exploration, validation используй ТОЛЬКО роли из bestFitRoles.
+❌ ПЛОХО: в bestFitRoles "Арт-директор", а в плане "вакансии Product Operations"
+✅ ХОРОШО: везде одна и та же роль из списка bestFitRoles
 
+Не путай пользователя разными ролями в разных блоках.
 Не вводи пользователя в заблуждение дополнительными ролями, которых нет в итоговом списке.
 
 ### 3. ⚡ ACTION PLAN — КОНКРЕТНЫЕ АРТЕФАКТЫ + УЧЁТ ПРЕДПОЧТЕНИЙ
@@ -249,14 +250,20 @@ ${isLowQuality ? lowQualityNote : ""}
 ### 7. 📚 SKILLS TO DEVELOP — СПЕЦИФИЧНЫЕ ДЛЯ РОЛИ
 Для IT/аналитики: SQL, визуализация данных, A/B тестирование, Python
 Для работы с людьми: фасилитация, коучинговые техники, проектирование обучения
+Для креативных ролей: сторителлинг, работа с референсами, визуальная коммуникация
+
+**Всегда предлагай 2-3 навыка, не ограничивайся одним.**
 
 ### 8. 📋 PROFILE SUMMARY — ПОРТРЕТ, А НЕ ПЕРЕЧЕНЬ ПРЕДПОЧТЕНИЙ
 ❌ "Вам важна полная свобода исследовать и экспериментировать" (пересказ)
 ❌ "Вы цените стабильность и смысл в своей работе" (пересказ)
 ❌ "Вы любите создавать новое" (пересказ)
+❌ "Вам важна свобода действий" (пересказ Q5)
+❌ "Вы любите свободу" (пересказ)
 ✅ "Вы расцветаете, когда есть простор для манёвра, но при этом понятна конечная цель"
 ✅ "Вам важно видеть, что ваша работа приносит реальную пользу, а не просто движет метрики"
 ✅ "Ваша энергия — в запуске новых процессов и превращении идей в осязаемый результат"
+✅ "Вы расцветаете, когда есть простор для манёвра и право самостоятельно выбирать путь к цели"
 
 **ЗАПРЕЩЕНО использовать фразы, которые пользователь написал о себе.**
 **Описывай, КАК предпочтения проявляются в работе, а не просто перечисляй их.**
@@ -278,6 +285,8 @@ ${isLowQuality ? lowQualityNote : ""}
 
 ### 11. ✅ VALIDATION — ВСЕГДА УКАЗЫВАЙ АДРЕСАТА
 ❌ "Создайте мини-презентацию"
+❌ "Представьте её на мероприятии или форуме"
+❌ "Создайте мини-презентацию"
 ✅ "Создайте мини-презентацию (3 слайда) о том, как бы вы улучшили конкретный продукт/процесс. Покажите знакомому из индустрии или в тематическом чате. Попросите: 'Что здесь самое слабое место?'"
 
 ### 12. 🚀 NEXT MOVE — УЧИТЫВАЙ УРОВЕНЬ
@@ -287,6 +296,7 @@ ${isLowQuality ? lowQualityNote : ""}
 {
   "profileType": "главное противоречие (2-4 слова)",
   "profileSummary": "2-3 предложения-ПОРТРЕТ, НЕ ПЕРЕСКАЗ",
+  "recommendedNextStep": "один ясный следующий шаг, который можно сделать в ближайшие 24–72 часа",
   "whyThisResult": ["переформулированный паттерн 1", "паттерн 2", "паттерн 3"],
   "keyStrengths": ["рабочая способность 1", "способность 2", "способность 3"],
   "workStyle": "КАК вы работаете, а не где — итерации, ритм, стиль принятия решений",
@@ -355,11 +365,12 @@ The "whyThisResult" block MUST NOT contain phrases found in user's answers.
 ✅ "Product Operations" — analysis + process improvement
 ✅ "Business Intelligence Specialist" — data-driven strategy
 
-### 2.5. 🚫 ROLES ONLY FROM THE LIST (NEW RULE)
-In explanation, mention ONLY the roles that are in bestFitRoles.
-❌ BAD: "This role fits, also you could consider DevOps"
-✅ GOOD: explanation ONLY about the role in the list
+### 2.5. 🚫 ROLES ONLY FROM THE LIST — CHECK ACTION PLAN
+In actionPlan.immediate, exploration, validation use ONLY roles from bestFitRoles.
+❌ BAD: bestFitRoles has "Art Director", but plan says "Product Operations jobs"
+✅ GOOD: the same role from bestFitRoles throughout
 
+Don't confuse the user with different roles in different blocks.
 Don't confuse the user with additional roles not in the final list.
 
 ### 3. ⚡ ACTION PLAN = CONCRETE ARTIFACTS + CONSIDER PREFERENCES
@@ -391,14 +402,20 @@ For each action, specify WHAT to create and WHY it matters. **Consider user pref
 ✅ "Translating ambiguous briefs into structured plans"
 ✅ "Explaining complex concepts in simple terms"
 
-### 7. 📚 SKILLS TO DEVELOP — ROLE-SPECIFIC
+### 7. 📚 SKILLS TO DEVELOP — ROLE-SPECIFIC (ALWAYS 2-3 SKILLS)
 For IT/analytics: SQL, data visualization, A/B testing, Python
 For people-oriented: facilitation, coaching, educational design
+For creative roles: storytelling, reference work, visual communication
+
+**Always suggest 2-3 skills, don't limit to just one.**
 
 ### 8. 📋 PROFILE SUMMARY — PORTRAIT, NOT PREFERENCE LIST
 ❌ "You value full freedom to explore and experiment" (regurgitation)
 ❌ "You value stability and meaning in your work" (regurgitation)
 ❌ "You love creating new things" (regurgitation)
+❌ "You value freedom of action" (regurgitation of Q5)
+❌ "You love freedom" (regurgitation)
+✅ "You thrive when there's room to maneuver and the right to choose your own path to the goal"
 ✅ "You thrive when there's room to maneuver, but with a clear end goal in sight"
 ✅ "You need to see that your work makes a real difference, not just moves metrics"
 ✅ "Your energy comes from launching new processes and turning ideas into tangible results"
@@ -423,6 +440,8 @@ For people-oriented: facilitation, coaching, educational design
 
 ### 11. ✅ VALIDATION — ALWAYS SPECIFY WHO TO SHOW
 ❌ "Create a mini-pitch"
+❌ "Create a mini-pitch"
+❌ "Present it at an event or forum"
 ✅ "Create a mini-pitch (3 slides) about improving a specific product/process. Share with someone in the industry or in a relevant community. Ask: 'What's the weakest part here?'"
 
 ### 12. 🚀 NEXT MOVE — CONSIDER USER LEVEL
@@ -432,6 +451,7 @@ If answers suggest exploration phase — suggest small, concrete projects with m
 {
   "profileType": "core contradiction (2-4 words)",
   "profileSummary": "2-3 sentences PORTRAIT, NOT REPETITION",
+  "recommendedNextStep": "one clear next step the user can take within 24–72 hours",
   "whyThisResult": ["rephrased pattern 1", "pattern 2", "pattern 3"],
   "keyStrengths": ["work capability 1", "capability 2", "capability 3"],
   "workStyle": "HOW you work — iterations, rhythm, decision style",
@@ -622,15 +642,18 @@ function generateSmartFallback(language: Language, answers: string[], answersQua
     potentialMismatches: isRussian
       ? ["Полностью неструктурированные стартапы — хаос вас парализует", "Жёстко регламентированные роли без права на эксперимент"]
       : ["Completely unstructured startups — chaos paralyzes you", "Rigidly defined roles without room to experiment"],
+    recommendedNextStep: isRussian
+        ? `Найдите 3 вакансии "${roleExample}" и выпишите повторяющиеся требования — это даст более реалистичное понимание роли.`
+        : `Find 3 "${roleExample}" job postings and note recurring requirements — this will give you a more realistic picture of the role.`,
     actionPlan: {
       immediate: isRussian
         ? [
-            `Составьте таблицу с 5 вакансиями "${roleExample}" и выделите 3 повторяющихся требования — это покажет, какие навыки реально нужны рынку`,
-            `Напишите 1-страничный документ о том, как бы вы улучшили конкретный процесс — это станет основой для портфолио`
+            `Сохраните 3 вакансии "${roleExample}" и выпишите по одному повторяющемуся требованию из каждой — это покажет, что чаще всего ждут от кандидата.`,
+            `Набросайте 3 пункта о том, как бы вы улучшили знакомый вам процесс — это поможет проверить, интересно ли вам думать в логике этой роли.`
           ]
         : [
-            `Create a spreadsheet with 5 "${roleExample}" job postings and highlight 3 recurring requirements — this shows what skills the market actually needs`,
-            `Write a 1-page document on how you'd improve a specific process — this becomes portfolio material`
+            `Save 3 "${roleExample}" job postings and note one recurring requirement from each — this shows what employers most often expect.`,
+            `Jot down 3 bullet points on how you'd improve a process you know — this helps test if you enjoy thinking in this role's logic.`
           ],
       exploration: isRussian
         ? [
@@ -768,6 +791,12 @@ export async function POST(req: NextRequest) {
         maxLength: 400,
         fallback: isRussian ? "Создатель, которому нужны границы — вы расцветаете, когда есть чёткая цель, но полная свобода в том, как её достичь." : "A creator who needs guardrails — you thrive with clear goals but full freedom in execution.",
       }),
+      recommendedNextStep: cleanText(rawResult?.recommendedNextStep, {
+          maxLength: 220,
+          fallback: isRussian
+            ? "Найдите 3 подходящие вакансии и выпишите повторяющиеся требования."
+            : "Find 3 relevant job descriptions and note repeated requirements.",
+        }),
       whyThisResult: cleanList(rawResult?.whyThisResult, {
         maxItems: 3,
         maxLength: 200,
@@ -789,7 +818,7 @@ export async function POST(req: NextRequest) {
               explanation: cleanText(item?.explanation, { maxLength: 300 }),
             }))
             .filter((item: { role: string; explanation: string }) => item.role && item.explanation)
-            .slice(0, 5)
+            .slice(0, 3)
         : [],
       potentialMismatches: cleanList(rawResult?.potentialMismatches, {
         maxItems: 2,
@@ -834,7 +863,7 @@ export async function POST(req: NextRequest) {
     // Fallback для пустых полей
     if (normalized.whyThisResult.length < 3) {
       normalized.whyThisResult = isRussian
-        ? ["Вы драйвитесь созданием, но хаос вас парализует", "Вам нужна структура для реализации идей", "Вы ценишь автономию в рамках процессов"]
+        ? ["Вы драйвитесь созданием, но хаос вас парализует", "Вам нужна структура для реализации идей", "Вы цените автономию в рамках процессов"]
         : ["You're driven by creation, but chaos paralyzes you", "You need structure to execute ideas", "You value autonomy within processes"];
     }
 
@@ -851,8 +880,14 @@ export async function POST(req: NextRequest) {
 
     if (!normalized.actionPlan.immediate.length) {
       normalized.actionPlan.immediate = isRussian
-        ? [`Составьте таблицу с 5 вакансиями и выделите 3 повторяющихся требования — это покажет реальные запросы рынка`, `Напишите 1-страничный документ об улучшении процесса — это станет основой портфолио`]
-        : [`Create a spreadsheet with 5 job postings and highlight 3 recurring requirements`, `Write a 1-page process improvement doc — this becomes portfolio material`];
+        ? [
+            `Сохраните 3 вакансии и выпишите по одному повторяющемуся требованию из каждой — это покажет реальные запросы рынка`,
+            `Набросайте 3 пункта об улучшении знакомого процесса — это проверит ваш интерес к роли`
+          ]
+        : [
+            `Save 3 job postings and note one recurring requirement from each — this shows real market demands`,
+            `Jot down 3 bullet points on improving a process you know — this tests your interest in the role`
+          ];
     }
 
     if (!normalized.actionPlan.exploration.length) {
