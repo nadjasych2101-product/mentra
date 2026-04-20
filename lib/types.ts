@@ -1,6 +1,6 @@
 export type AnalysisResult = {
+  profileType: string;
   profileSummary: string;
-  recommendedNextStep: string;
   whyThisResult: string[];
   keyStrengths: string[];
   workStyle: string;
@@ -10,19 +10,18 @@ export type AnalysisResult = {
   }[];
   potentialMismatches: string[];
   recommendedNextStep: string;
-
   actionPlan: {
     immediate: string[];
     exploration: string[];
     validation: string[];
     skillsToDevelop?: Array<{
-          skill: string;
-          why: string;
-          howToLearn: string;
-        }>;
+      skill: string;
+      why: string;
+      howToLearn: string;
+    }>;
     nextMove: string;
   };
-
-  profileType: string;
   provider?: string;
+  _note?: string;
+  confidence?: string;
 };
