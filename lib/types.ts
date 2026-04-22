@@ -4,6 +4,8 @@ export type AnalysisResult = {
   whyThisResult: string[];
   keyStrengths: string[];
   workStyle: string;
+  qualityScore?: number;
+  qualityReasons?: string[];
   bestFitRoles: Array<{
     role: string;
     explanation: string;

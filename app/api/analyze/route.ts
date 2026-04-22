@@ -38,6 +38,10 @@ type MentraResponse = {
     skillsToDevelop: SkillToDevelop[];
     nextMove: string;
   };
+  provider?: "groq" | "deepseek" | "fallback";
+  confidence?: "low" | "medium" | "high";
+  qualityScore?: number;
+  qualityReasons?: string[];
   _note?: string;
 };
 
@@ -89,6 +93,147 @@ const GENERIC_PHRASES = [
   "надёжный",
   "эффективный",
 ];
+
+const WEAK_STRENGTH_PHRASES = [
+  "аналитические навыки",
+  "логическое мышление",
+  "креативность",
+  "аналитическое мышление",
+  "навыки общения",
+  "коммуникация",
+  "организаторские способности",
+  "внимание к деталям",
+  "самостоятельность",
+  "лидерство",
+  "эмпатия",
+  "сочувствие",
+  "управление процессами",
+  "управление проектами",
+  "problem-solving skills",
+  "analytical skills",
+  "logical thinking",
+  "creativity",
+  "analytical thinking",
+  "communication skills",
+  "communication",
+  "organizational skills",
+  "attention to detail",
+  "independence",
+  "autonomy",
+  "leadership",
+  "empathy",
+  "project management",
+  "process management",
+];
+
+const WEAK_WHY_PATTERNS = [
+  "ответ на q",
+  "интерес к",
+  "любовь к",
+  "предпочтение",
+  "ценность",
+  "сочетание потребности",
+  "важность",
+  "склонность к",
+  "ориентация на",
+  "навыки выявления",
+  "аналитический подход",
+  "you value",
+  "you prefer",
+  "interest in",
+  "love for",
+  "preference for",
+  "combination of",
+  "importance of",
+  "inclination toward",
+  "orientation toward",
+  "analytical approach",
+];
+
+const WEAK_VALIDATION_PATTERNS = [
+  "поговорить с профессионал",
+  "поговорить с коллег",
+  "поговорить с наставник",
+  "поговорить с людьми",
+  "обсудить возможности",
+  "получить обратную связь от профессионала",
+  "join online communities",
+  "join communities",
+  "talk to professionals",
+  "talk to colleagues",
+  "talk to a mentor",
+  "talk to people",
+  "discuss opportunities",
+  "get feedback from professionals",
+];
+
+const WEAK_NEXT_STEP_PATTERNS = [
+  "изучить основы",
+  "изучить возможности",
+  "исследовать возможности",
+  "узнать больше",
+  "почитать про",
+  "пройти курс",
+  "обсудить возможности",
+  "запланировать встречу",
+  "связаться с",
+  "подать заявку",
+  "learn the basics",
+  "explore opportunities",
+  "research opportunities",
+  "learn more",
+  "read about",
+  "take a course",
+  "discuss opportunities",
+  "schedule informational interviews",
+  "schedule a meeting",
+  "contact professionals",
+  "apply for",
+  "research and network",
+];
+
+const ROLE_REPLACEMENTS: Record<string, { ru: string; en: string }> = {
+  "community building": {
+    ru: "Комьюнити-менеджер",
+    en: "Community Manager",
+  },
+  "управление процессами": {
+    ru: "Специалист по улучшению процессов",
+    en: "Process Improvement Specialist",
+  },
+  "менеджер процессов": {
+    ru: "Специалист по улучшению процессов",
+    en: "Process Improvement Specialist",
+  },
+  "наставник": {
+    ru: "Координатор обучения",
+    en: "Learning Coordinator",
+  },
+  "наставник или тренер": {
+    ru: "Координатор обучения",
+    en: "Learning Coordinator",
+  },
+  "операционный директор": {
+    ru: "Операционный координатор",
+    en: "Operations Coordinator",
+  },
+  "контролер качества": {
+    ru: "Специалист по качеству",
+    en: "Quality Specialist",
+  },
+  "аналитик качества": {
+    ru: "Специалист по качеству",
+    en: "Quality Specialist",
+  },
+  "обучатель": {
+    ru: "Специалист по обучению",
+    en: "Learning Specialist",
+  },
+  "обучатель или преподаватель": {
+    ru: "Специалист по обучению",
+    en: "Learning Specialist",
+  },
+};
 
 const VAGUE_ACTION_PHRASES = [
   "learn more",
@@ -275,6 +420,11 @@ function isGeneric(text: string): boolean {
   return GENERIC_PHRASES.some((phrase) => lower.includes(phrase));
 }
 
+function isWeakStrength(text: string): boolean {
+  const lower = text.toLowerCase();
+  return WEAK_STRENGTH_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
 function isVagueAction(text: string): boolean {
   const lower = text.toLowerCase();
   return VAGUE_ACTION_PHRASES.some((phrase) => lower.includes(phrase));
@@ -321,9 +471,434 @@ function cleanText(
   options?: { maxLength?: number; fallback?: string }
 ): string {
   const { maxLength = 220, fallback = "" } = options || {};
-  const text = normalizeText(value);
+  const text = cleanBrokenText(normalizeText(value));
   if (!text) return fallback;
   return text.slice(0, maxLength);
+}
+
+function cleanBrokenText(text: string): string {
+  return text
+    .replace(/trước/gi, "")
+    .replace(/rõкими/gi, "чёткими")
+    .replace(/monotон/gi, "монотон")
+    .replace(/一定/gi, "")
+    .replace(/解决/gi, "")
+    .replace(/[一-龯々〆ヵヶ]+/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function tokenize(text: string): string[] {
+  return normalizeText(text)
+    .toLowerCase()
+    .split(/[^a-zа-яё0-9]+/i)
+    .filter((word) => word.length >= 4);
+}
+
+function hasStrongOverlap(source: string, candidate: string): boolean {
+  const sourceWords = tokenize(source);
+  if (!sourceWords.length) return false;
+
+  const candidateLower = normalizeText(candidate).toLowerCase();
+  const matched = sourceWords.filter((word) => candidateLower.includes(word));
+
+  return matched.length >= 3;
+}
+
+function filterRegurgitation(items: string[], answers: string[]): string[] {
+  return items.filter(
+    (item) => !answers.some((answer) => hasStrongOverlap(answer, item))
+  );
+}
+
+function mentionsAnswerTooDirectly(text: string, answers: string[]): boolean {
+  return answers.some((answer) => hasStrongOverlap(answer, text));
+}
+
+function isParaphrasePattern(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  return [
+    "вам важно",
+    "вы цените",
+    "вас тянет",
+    "предпочтение",
+    "любовь к",
+    "интерес к",
+    "you value",
+    "you prefer",
+    "you are drawn to",
+    "interest in",
+    "love for",
+  ].some((pattern) => lower.startsWith(pattern));
+}
+
+function matchesAnyPattern(text: string, patterns: string[]): boolean {
+  const lower = normalizeText(text).toLowerCase();
+  return patterns.some((pattern) => lower.includes(pattern));
+}
+
+function isWeakWhy(text: string): boolean {
+  return isParaphrasePattern(text) || matchesAnyPattern(text, WEAK_WHY_PATTERNS);
+}
+
+function isWeakValidation(text: string): boolean {
+  return matchesAnyPattern(text, WEAK_VALIDATION_PATTERNS);
+}
+
+function isWeakRecommendedNextStep(text: string): boolean {
+  return isWeakAction(text) || matchesAnyPattern(text, WEAK_NEXT_STEP_PATTERNS);
+}
+
+function isWeakNextMove(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  if (matchesAnyPattern(lower, WEAK_NEXT_STEP_PATTERNS)) return true;
+
+  return (
+    /^(подать заявку|пройти курс|изучить|исследовать|связаться|запланировать|apply for|take a course|research|explore|contact|schedule)\b/.test(
+      lower
+    )
+  );
+}
+
+function isWeakAction(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  return /^(изучить|посмотреть|почитать|подумать|learn|explore|look into|read about)\b/.test(lower);
+}
+
+function enforceQ10Priority(
+  roles: BestFitRole[],
+  q10: string
+): BestFitRole[] {
+  const interest = normalizeText(q10).toLowerCase();
+  const interestWords = tokenize(interest);
+
+  if (!interest || interestWords.length === 0) return roles;
+
+  const scored = roles.map((role, index) => {
+    const haystack = `${role.role} ${role.explanation}`.toLowerCase();
+
+    let score = 0;
+    for (const word of interestWords) {
+      if (haystack.includes(word)) score += 1;
+    }
+
+    return { role, score, index };
+  });
+
+  const maxScore = Math.max(...scored.map((item) => item.score));
+  if (maxScore === 0) return roles;
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.index - b.index;
+  });
+
+  return scored.map((item) => item.role);
+}
+
+function injectTension(profileSummary: string, answers: string[], isRussian: boolean): string {
+  const allText = answers.join(" ").toLowerCase();
+
+  const hasFreedom =
+    /свобод|autonom|freedom|independ/i.test(allText);
+  const hasStructure =
+    /структ|framework|structure|clear goal|clear criteria/i.test(allText);
+  const likesChaos =
+    /хаос|chaos/i.test(answers[7] || "");
+  const dislikesUncertainty =
+    /неопредел|uncertain/i.test(allText);
+
+  const alreadyHasTension =
+    /противореч|tension|contradiction/i.test(profileSummary.toLowerCase());
+
+  if (alreadyHasTension) return profileSummary;
+
+  if (hasFreedom && hasStructure) {
+    return isRussian
+      ? `${profileSummary} Ваше ключевое внутреннее напряжение: вам нужна свобода в способе действия, но при этом важны понятные опоры и рамка.`
+      : `${profileSummary} Your core tension is that you want freedom in execution, but you still need clear structure and points of reference.`;
+  }
+
+  if (likesChaos && dislikesUncertainty) {
+    return isRussian
+      ? `${profileSummary} Здесь есть важное напряжение: вас может заряжать динамика, но затянувшаяся неопределённость всё же начинает отнимать ресурс.`
+      : `${profileSummary} There is an important tension here: fast-moving situations may energize you, but prolonged uncertainty still drains you.`;
+  }
+
+  return profileSummary;
+}
+
+type QualityScoreDetails = {
+  score: number;
+  reasons: string[];
+};
+
+type ProviderResult = {
+  result: MentraRawResult;
+  isLowQuality: boolean;
+};
+
+type ReviewResult = {
+  verdict: "accept" | "revise" | "fallback";
+  issues: string[];
+};
+
+function scoreAnalysisResult(
+  result: MentraResponse,
+  answers: string[],
+  isRussian: boolean
+): QualityScoreDetails {
+  let score = 100;
+  const reasons: string[] = [];
+
+  if (!result.profileType || result.profileType.length < 3) {
+    score -= 10;
+    reasons.push(isRussian ? "Слабый profileType" : "Weak profileType");
+  }
+
+  if (!result.profileSummary || result.profileSummary.length < 80) {
+    score -= 15;
+    reasons.push(
+      isRussian
+        ? "Слишком короткий profileSummary"
+        : "Profile summary is too short"
+    );
+  }
+
+  if (result.whyThisResult.length < 3) {
+    score -= 15;
+    reasons.push(
+      isRussian
+        ? "Недостаточно whyThisResult"
+        : "Not enough whyThisResult items"
+    );
+  }
+
+  if (result.keyStrengths.length < 3) {
+    score -= 10;
+    reasons.push(
+      isRussian ? "Недостаточно keyStrengths" : "Not enough keyStrengths"
+    );
+  }
+
+  const weakStrengthsCount = result.keyStrengths.filter(isWeakStrength).length;
+  if (weakStrengthsCount > 0) {
+    score -= Math.min(15, weakStrengthsCount * 5);
+    reasons.push(
+      isRussian
+        ? "Слишком общие сильные стороны"
+        : "Strengths are too generic"
+    );
+  }
+
+  if (result.bestFitRoles.length < 2) {
+    score -= 15;
+    reasons.push(
+      isRussian ? "Недостаточно bestFitRoles" : "Not enough bestFitRoles"
+    );
+  }
+
+  const broadRolesCount = result.bestFitRoles.filter((role) =>
+    isTooBroadRole(role.role)
+  ).length;
+
+  if (broadRolesCount > 0) {
+    score -= Math.min(18, broadRolesCount * 6);
+    reasons.push(
+      isRussian
+        ? "Слишком широкие или завышенные роли"
+        : "Roles are too broad or inflated"
+    );
+  }
+
+  if (!result.actionPlan.immediate.length) {
+    score -= 10;
+    reasons.push(isRussian ? "Пустой immediate plan" : "Empty immediate plan");
+  }
+
+  if (!result.actionPlan.exploration.length) {
+    score -= 8;
+    reasons.push(
+      isRussian ? "Пустой exploration plan" : "Empty exploration plan"
+    );
+  }
+
+  if (!result.actionPlan.validation.length) {
+    score -= 8;
+    reasons.push(
+      isRussian ? "Пустой validation plan" : "Empty validation plan"
+    );
+  }
+
+  if (!result.actionPlan.skillsToDevelop.length) {
+    score -= 8;
+    reasons.push(
+      isRussian ? "Пустой skillsToDevelop" : "Empty skillsToDevelop"
+    );
+  }
+
+  if (!result.actionPlan.nextMove || result.actionPlan.nextMove.length < 40) {
+    score -= 10;
+    reasons.push(isRussian ? "Слабый nextMove" : "Weak nextMove");
+  }
+
+  const regurgitationHits = [
+    ...result.whyThisResult,
+    result.profileSummary,
+    result.workStyle,
+    result.recommendedNextStep,
+  ].filter((item) => mentionsAnswerTooDirectly(item, answers)).length;
+
+  if (regurgitationHits > 0) {
+    score -= Math.min(25, regurgitationHits * 8);
+    reasons.push(
+      isRussian
+        ? "Есть пересказ ответов пользователя"
+        : "Contains user-answer regurgitation"
+    );
+  }
+
+  if (isWeakAction(result.recommendedNextStep)) {
+    score -= 10;
+    reasons.push(
+      isRussian
+        ? "Слабый recommendedNextStep"
+        : "Weak recommendedNextStep"
+    );
+  }
+
+  if (isWeakNextMove(result.actionPlan.nextMove)) {
+    score -= 10;
+    reasons.push(
+      isRussian ? "nextMove слишком общий" : "nextMove is too generic"
+    );
+  }
+
+  const weakActionsCount = [
+    ...result.actionPlan.immediate,
+    ...result.actionPlan.exploration,
+    ...result.actionPlan.validation,
+  ].filter(isWeakAction).length;
+
+  if (weakActionsCount > 0) {
+    score -= Math.min(15, weakActionsCount * 4);
+    reasons.push(
+      isRussian
+        ? "Слишком абстрактные действия"
+        : "Actions are too abstract"
+    );
+  }
+
+  if (
+    !/противореч|напряж|tension|contradiction/i.test(
+      result.profileSummary.toLowerCase()
+    )
+  ) {
+    score -= 6;
+    reasons.push(
+      isRussian
+        ? "Нет tension/противоречия в профиле"
+        : "No tension/contradiction in summary"
+    );
+  }
+
+  const q10 = normalizeText(answers[9] || "").toLowerCase();
+  const q10Words = tokenize(q10);
+
+  if (q10Words.length > 0) {
+    const roleMatch = result.bestFitRoles.some((role) => {
+      const haystack = `${role.role} ${role.explanation}`.toLowerCase();
+      return q10Words.some((word) => haystack.includes(word));
+    });
+
+    if (!roleMatch) {
+      score -= 10;
+      reasons.push(
+        isRussian
+          ? "Роли слабо согласованы с интересом из Q10"
+          : "Roles are weakly aligned with Q10 interest"
+      );
+    }
+  }
+
+  const rolesText = result.bestFitRoles
+    .map((r) => `${r.role} ${r.explanation}`)
+    .join(" ")
+    .toLowerCase();
+
+  const planText = [
+    ...result.actionPlan.immediate,
+    ...result.actionPlan.exploration,
+    ...result.actionPlan.validation,
+    result.recommendedNextStep,
+    result.actionPlan.nextMove,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const hasJewelryRole = /jewel|gem|ювел|гемм/.test(rolesText);
+  const hasTestingRole = /qa|test|тест|quality/.test(rolesText);
+  const hasProductRole = /product|prodact|продакт/.test(rolesText);
+  const hasPeopleRole =
+    /community|mentor|learning|координатор|настав|обуч/.test(rolesText);
+
+  const shouldCheckRoleAlignment =
+    hasJewelryRole || hasTestingRole || hasProductRole || hasPeopleRole;
+
+  if (shouldCheckRoleAlignment) {
+    const roleAligned =
+      (hasJewelryRole && /jewel|gem|ювел|гемм/.test(planText)) ||
+      (hasTestingRole && /qa|test|тест|quality/.test(planText)) ||
+      (hasProductRole && /product|prodact|продакт/.test(planText)) ||
+      (hasPeopleRole &&
+        /community|mentor|learning|координатор|настав|обуч/.test(planText));
+
+    if (!roleAligned) {
+      score -= 12;
+      reasons.push(
+        isRussian
+          ? "План действий слабо согласован с итоговыми ролями"
+          : "Action plan is weakly aligned with final roles"
+      );
+    }
+  }
+
+    const weakWhyCount = result.whyThisResult.filter(isWeakWhy).length;
+    if (weakWhyCount > 0) {
+      score -= Math.min(15, weakWhyCount * 5);
+      reasons.push(
+        isRussian
+          ? "whyThisResult слишком близок к пересказу ответов"
+          : "whyThisResult is too close to answer paraphrase"
+      );
+    }
+
+    const weakValidationCount = result.actionPlan.validation.filter(isWeakValidation).length;
+    if (weakValidationCount > 0) {
+      score -= Math.min(12, weakValidationCount * 6);
+      reasons.push(
+        isRussian
+          ? "Validation слишком абстрактный"
+          : "Validation is too abstract"
+      );
+    }
+
+    if (isWeakRecommendedNextStep(result.recommendedNextStep)) {
+      score -= 10;
+      reasons.push(
+        isRussian
+          ? "recommendedNextStep слишком общий"
+          : "recommendedNextStep is too generic"
+      );
+    }
+
+  return {
+    score: Math.max(0, score),
+    reasons,
+  };
 }
 
 function getSystemPrompt(isRussian: boolean, isLowQuality: boolean): string {
@@ -335,6 +910,96 @@ function getSystemPrompt(isRussian: boolean, isLowQuality: boolean): string {
     : "⚠️ NOTE: Answers are very short. Make careful inferences and offer broader but still concrete options.";
 
   return `${base}\n\n${note}`;
+}
+
+function buildRegenerationPrompt(
+  originalPrompt: string,
+  qualityReasons: string[],
+  isRussian: boolean
+): string {
+  const feedback = isRussian
+    ? `Предыдущий вариант был недостаточно сильным. Исправь результат с учётом замечаний:\n- ${qualityReasons.join("\n- ")}\n\nСделай вывод глубже, конкретнее и сильнее. Не ослабляй структуру JSON. Верни только чистый JSON.`
+    : `The previous result was not strong enough. Regenerate it using this feedback:\n- ${qualityReasons.join("\n- ")}\n\nMake the result deeper, more specific, and more insightful. Keep the JSON structure strict. Return only clean JSON.`;
+
+  return `${originalPrompt}\n\n${feedback}`;
+}
+
+function buildReviewPrompt(
+  answers: string[],
+  language: Language,
+  candidate: MentraResponse
+): string {
+  const isRussian = language === "ru";
+
+  const formattedAnswers = answers
+    .map((answer, index) => `Q${index + 1}: ${answer || "(empty)"}`)
+    .join("\n");
+
+  const candidateJson = JSON.stringify(candidate, null, 2);
+
+  return isRussian
+    ? `Ты проверяешь результат карьерного AI-анализа как строгий редактор качества.
+
+Твоя задача: оценить, насколько результат ниже соответствует ответам пользователя и внутренним правилам качества.
+
+ПРОВЕРЬ:
+1. whyThisResult не пересказывает ответы пользователя и не звучит шаблонно
+2. keyStrengths не банальные и не слишком общие
+3. bestFitRoles реалистичны и не слишком "широкие" или выдуманные
+4. recommendedNextStep конкретный, не абстрактный, не "изучить/посмотреть/исследовать"
+5. validation действительно проверяет fit, а не просто "поговорить с кем-то"
+6. план действий согласован с ролями
+7. нет странного, битого, смешанного языка
+8. нет внутренних противоречий
+9. если ответы короткие — выводы всё равно не должны быть натянутыми
+
+Верни ТОЛЬКО JSON такого вида:
+{
+  "verdict": "accept" | "revise" | "fallback",
+  "issues": ["проблема 1", "проблема 2"]
+}
+
+Выбирай:
+- "accept" если результат достаточно хороший
+- "revise" если его можно исправить одной доработкой
+- "fallback" если результат слишком слабый и проще не спасать
+
+ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ:
+${formattedAnswers}
+
+РЕЗУЛЬТАТ ДЛЯ ПРОВЕРКИ:
+${candidateJson}`
+    : `You are reviewing a career-analysis result as a strict quality editor.
+
+Your task is to assess whether the result below is actually good enough based on the user's answers and the product quality rules.
+
+CHECK:
+1. whyThisResult does not paraphrase the user's answers too directly and does not sound generic
+2. keyStrengths are not banal or overly broad
+3. bestFitRoles are realistic and not vague or invented
+4. recommendedNextStep is concrete, not abstract, not just "learn/explore/research"
+5. validation actually tests fit instead of just "talk to someone"
+6. the action plan is aligned with the roles
+7. there is no broken or mixed language
+8. there are no internal contradictions
+9. if answers are short, conclusions should still stay careful and not overreach
+
+Return ONLY JSON in this format:
+{
+  "verdict": "accept" | "revise" | "fallback",
+  "issues": ["issue 1", "issue 2"]
+}
+
+Choose:
+- "accept" if the result is good enough
+- "revise" if it can be improved with one more pass
+- "fallback" if the result is too weak to save
+
+USER ANSWERS:
+${formattedAnswers}
+
+RESULT TO REVIEW:
+${candidateJson}`;
 }
 
 async function sendToTelegram(message: string): Promise<void> {
@@ -699,19 +1364,19 @@ function buildFallbackResponse(
                 ],
     keyStrengths: isRussian
       ? [
-          "Умение быстро схватывать суть задачи.",
-          "Способность сочетать самостоятельность с рабочими рамками.",
+          "Быстро выделяете главное в задаче и не тратите много времени на второстепенное.",
+          "Можете работать самостоятельно, но не разваливаете процесс — удерживаете внутреннюю рамку.",
           signals.hasPeople
-            ? "Умение объяснять сложное простым языком."
-            : "Внимание к деталям и качеству результата.",
+            ? "Умеете переводить сложное в понятные объяснения без давления и лишней сложности."
+            : "Замечаете слабые места в результате и естественно тянетесь к улучшению качества.",
         ]
-      : [
-          "Ability to grasp the core of a task quickly.",
-          "Ability to combine autonomy with practical structure.",
-          signals.hasPeople
-            ? "Explaining complex things in simple language."
-            : "Attention to detail and quality of outcome.",
-        ],
+        : [
+            "You quickly isolate the core of a task instead of getting lost in secondary details.",
+            "You can work independently without losing structure or internal discipline.",
+            signals.hasPeople
+              ? "You can translate complex things into clear explanations without sounding heavy or rigid."
+              : "You naturally notice weak points in a result and want to improve the quality of it.",
+          ],
     workStyle: isRussian
       ? `${chaosInterpretation} Вы обычно начинаете с общего понимания задачи, затем отсеиваете лишнее через логику и только потом переходите к реализации.`
       : `${chaosInterpretation} You usually start by building a broad understanding of the task, then filter the noise through logic, and only after that move into execution.`,
@@ -1050,19 +1715,321 @@ function buildFallbackResponse(
   };
 }
 
+function buildStrongWhyFallback(
+  language: Language,
+  signals: ReturnType<typeof extractSignals>
+): string[] {
+  const isRussian = language === "ru";
+
+  if (signals.q10Jewelry) {
+    return isRussian
+      ? [
+          "Тебе подходит работа, где можно опираться на критерии, сравнение признаков и аккуратную аргументацию.",
+          "Точность для тебя важнее скорости, особенно когда нужно сделать обоснованный вывод.",
+          "Лучше всего ты раскрываешься там, где есть конкретный объект анализа, а не абстрактная суета.",
+        ]
+      : [
+          "You fit work built on criteria, comparison, and careful reasoning.",
+          "Accuracy matters to you more than speed when a solid judgment is required.",
+          "You work best when there is a concrete object of analysis rather than vague motion.",
+        ];
+  }
+
+  if (signals.q10Testing) {
+    return isRussian
+      ? [
+          "Тебя скорее включает поиск слабых мест и несостыковок, чем запуск сырой идеи с нуля.",
+          "Когда есть понятные критерии качества, ты работаешь спокойнее и точнее.",
+          "Твой сильный режим — замечать, где система ломается, и доводить её до более надёжного состояния.",
+        ]
+      : [
+          "You are more energized by finding weak points and inconsistencies than by launching raw ideas from scratch.",
+          "Clear quality criteria help you work with more confidence and precision.",
+          "Your strong mode is spotting where a system breaks and helping make it more reliable.",
+        ];
+  }
+
+  if (signals.q10Creative) {
+    return isRussian
+      ? [
+          "Идеи для тебя важны не сами по себе — тебе нужен момент, когда они превращаются в заметный результат.",
+          "Ты сильнее всего в задачах, где можно соединить свободу хода с внутренней структурой.",
+          "Тебя заряжает не хаотичное творчество, а оформление замысла в понятную форму.",
+        ]
+      : [
+          "Ideas matter to you not on their own, but when they become something visible and usable.",
+          "You are strongest in work that combines freedom of approach with internal structure.",
+          "You are energized less by chaos and more by shaping an idea into a clear form.",
+        ];
+  }
+
+  if (signals.q10People) {
+    return isRussian
+      ? [
+          "Ты лучше всего проявляешься там, где можно снижать чужую растерянность и добавлять ясность.",
+          "Для тебя важен не формальный контакт с людьми, а ощущение реальной пользы для них.",
+          "Твоё сильное место — объяснять, поддерживать и удерживать человека в процессе без лишнего давления.",
+        ]
+      : [
+          "You do best where you can reduce confusion for other people and add clarity.",
+          "What matters to you is not social contact by itself, but being genuinely useful.",
+          "Your strong zone is explaining, supporting, and helping someone stay in the process without pressure.",
+        ];
+  }
+
+  return isRussian
+    ? [
+        "Тебе подходит работа, где нужно не просто делать задачу, а улучшать её качество и понятность.",
+        "Ты сильнее в среде, где самостоятельность сочетается с ясной логикой и рабочими ориентирами.",
+        "Лучший для тебя формат — видеть, как из разрозненной задачи получается более собранный и качественный результат.",
+      ]
+    : [
+        "You fit work where the task is not just to execute, but to improve quality and clarity.",
+        "You are stronger in environments where autonomy is paired with logic and clear reference points.",
+        "Your best format is turning something scattered into a more coherent and higher-quality result.",
+      ];
+}
+
+function buildStrongSkillsFallback(
+  language: Language,
+  track: "jewelry" | "testing" | "creative" | "people" | "general"
+): SkillToDevelop[] {
+  const isRussian = language === "ru";
+
+  if (track === "jewelry") {
+    return isRussian
+      ? [
+          {
+            skill: "Базовая геммология",
+            why: "Нужна, чтобы понимать свойства камней и уверенно опираться на критерии оценки.",
+            howToLearn: "Начните с 3 вводных материалов по геммологии и выпишите основные параметры оценки.",
+          },
+          {
+            skill: "Предметный анализ",
+            why: "Помогает сравнивать объекты по признакам и делать аргументированные выводы.",
+            howToLearn: "Тренируйтесь описывать украшения или камни по 4-5 признакам и фиксировать различия.",
+          },
+        ]
+      : [
+          {
+            skill: "Basic gemology",
+            why: "It helps you understand stone properties and use evaluation criteria with confidence.",
+            howToLearn: "Start with 3 introductory gemology resources and note the core evaluation parameters.",
+          },
+          {
+            skill: "Object-based analysis",
+            why: "It helps you compare objects by traits and make grounded judgments.",
+            howToLearn: "Practice describing jewelry or stones by 4-5 traits and noting the differences.",
+          },
+        ];
+  }
+
+  if (track === "testing") {
+    return isRussian
+      ? [
+          {
+            skill: "Тест-дизайн",
+            why: "Это основа сильной QA-работы: не просто проверять, а понимать, что именно надо покрыть.",
+            howToLearn: "Возьмите одну простую функцию и составьте для неё чек-лист, негативные сценарии и граничные случаи.",
+          },
+          {
+            skill: "Баг-репорты",
+            why: "Хороший QA отличается не только тем, что находит проблему, но и тем, как ясно её описывает.",
+            howToLearn: "Напишите 3 пробных баг-репорта по найденным проблемам и сравните, где формулировка понятнее.",
+          },
+        ]
+      : [
+          {
+            skill: "Test design",
+            why: "It is core to QA: not just checking things, but understanding what must be covered.",
+            howToLearn: "Take one simple feature and create a checklist, negative scenarios, and edge cases for it.",
+          },
+          {
+            skill: "Bug reporting",
+            why: "Strong QA is not only about finding issues, but also describing them clearly.",
+            howToLearn: "Write 3 sample bug reports for issues you find and compare which wording is clearer.",
+          },
+        ];
+  }
+
+  if (track === "creative") {
+    return isRussian
+      ? [
+          {
+            skill: "Структурирование идей",
+            why: "Помогает доводить сырую задумку до понятной концепции, которую можно показать другим.",
+            howToLearn: "Берите одну идею и оформляйте её в формат: задача, идея, пример, ожидаемый эффект.",
+          },
+          {
+            skill: "Презентация замысла",
+            why: "Креативный результат ценен только тогда, когда его можно убедительно объяснить.",
+            howToLearn: "Соберите 3 коротких слайда для одной идеи и покажите их знакомому на обратную связь.",
+          },
+        ]
+      : [
+          {
+            skill: "Structuring ideas",
+            why: "It helps turn a raw idea into a concept other people can understand and evaluate.",
+            howToLearn: "Take one idea and package it as: problem, concept, example, expected effect.",
+          },
+          {
+            skill: "Presenting creative concepts",
+            why: "A creative result matters more when you can explain it clearly and convincingly.",
+            howToLearn: "Build 3 short slides for one idea and show them to someone for feedback.",
+          },
+        ];
+  }
+
+  if (track === "people") {
+    return isRussian
+      ? [
+          {
+            skill: "Объяснение сложного простым языком",
+            why: "Это делает поддержку и сопровождение реально полезными для другого человека.",
+            howToLearn: "Возьмите одну сложную тему и попробуйте объяснить её в 5-6 простых предложениях.",
+          },
+          {
+            skill: "Активное слушание",
+            why: "Помогает не навязывать решение, а сначала понять, в чём именно человеку нужна помощь.",
+            howToLearn: "В 2-3 разговорах сначала задавайте уточняющие вопросы, а потом коротко пересказывайте услышанное.",
+          },
+        ]
+      : [
+          {
+            skill: "Explaining complex things simply",
+            why: "It makes support and guidance genuinely useful to other people.",
+            howToLearn: "Take one complex topic and explain it in 5-6 simple sentences.",
+          },
+          {
+            skill: "Active listening",
+            why: "It helps you understand what kind of support a person actually needs before reacting.",
+            howToLearn: "In 2-3 conversations, ask clarifying questions first and then briefly restate what you heard.",
+          },
+        ];
+  }
+
+  return isRussian
+    ? [
+        {
+          skill: "Анализ задач",
+          why: "Помогает быстрее видеть, что в задаче главное, а что вторично.",
+          howToLearn: "Разберите 3 знакомые задачи по схеме: цель, ограничение, критерий качества.",
+        },
+        {
+          skill: "Ясная коммуникация",
+          why: "Нужна, чтобы доносить идеи, выводы и замечания без путаницы.",
+          howToLearn: "Тренируйтесь кратко объяснять одно решение за 1-2 минуты и получать обратную связь.",
+        },
+      ]
+    : [
+        {
+          skill: "Task analysis",
+          why: "It helps you see faster what matters most in a task and what is secondary.",
+          howToLearn: "Break down 3 familiar tasks into: goal, constraint, and quality criterion.",
+        },
+        {
+          skill: "Clear communication",
+          why: "It helps you explain ideas, conclusions, and concerns without confusion.",
+          howToLearn: "Practice explaining one decision in 1-2 minutes and ask for feedback on clarity.",
+        },
+      ];
+}
+
+function inferTrackFromRoles(
+  roles: BestFitRole[]
+): "jewelry" | "testing" | "creative" | "people" | "general" {
+  const text = roles
+    .map((r) => `${r.role} ${r.explanation}`)
+    .join(" ")
+    .toLowerCase();
+
+  if (/ювел|камн|гемм|gem|jewel|apprais/.test(text)) {
+    return "jewelry";
+  }
+
+  if (/qa|тест|quality|test/.test(text)) {
+    return "testing";
+  }
+
+  if (/content|brand|creative|креатив|контент|бренд|product manager|prodact|продакт/.test(text)) {
+    return "creative";
+  }
+
+  if (/mentor|community|learning|координатор|настав|обуч|community manager|program coordinator/.test(text)) {
+    return "people";
+  }
+
+  return "general";
+}
+
+function buildRoleAlignedFallback(
+  language: Language,
+  answers: string[],
+  answersQuality: AnswersQualitySummary,
+  roles: BestFitRole[]
+): MentraResponse {
+  const isRussian = language === "ru";
+  const track = inferTrackFromRoles(roles);
+
+  const signals = extractSignals(answers);
+
+  const patchedSignals = {
+    ...signals,
+    q10Jewelry: track === "jewelry",
+    q10Testing: track === "testing",
+    q10Creative: track === "creative",
+    q10People: track === "people",
+  };
+
+  const fallback = buildFallbackResponse(language, answersQuality, patchedSignals);
+  fallback.bestFitRoles = roles;
+
+  fallback.profileSummary = injectTension(
+    fallback.profileSummary,
+    answers,
+    isRussian
+  );
+
+  fallback.whyThisResult = buildStrongWhyFallback(language, patchedSignals);
+
+  return fallback;
+}
+
 function generateSmartFallback(
   language: Language,
   answers: string[],
   answersQuality: AnswersQualitySummary
 ): MentraResponse {
-  return buildFallbackResponse(language, answersQuality, extractSignals(answers));
+  const signals = extractSignals(answers);
+
+  const result = buildFallbackResponse(
+    language,
+    answersQuality,
+    signals
+  );
+
+  result.profileSummary = injectTension(
+    result.profileSummary,
+    answers,
+    language === "ru"
+  );
+
+  result.bestFitRoles = enforceQ10Priority(
+    result.bestFitRoles,
+    answers[9] || ""
+  );
+
+  result.whyThisResult = buildStrongWhyFallback(language, signals);
+
+  return result;
 }
 
 async function callGroq(
   prompt: string,
   isRussian: boolean,
-  answersQuality: AnswersQualitySummary
-): Promise<{ result: MentraRawResult; isLowQuality: boolean } | null> {
+  answersQuality: AnswersQualitySummary,
+  overridePrompt?: string
+): Promise<ProviderResult | null> {
   if (!process.env.GROQ_API_KEY) {
     console.log("❌ Groq API key not configured");
     return null;
@@ -1084,7 +2051,7 @@ async function callGroq(
           role: "system",
           content: getSystemPrompt(isRussian, isLowQuality),
         },
-        { role: "user", content: prompt },
+        { role: "user", content: overridePrompt ?? prompt },
       ],
       temperature: 0.9,
       max_tokens: 3000,
@@ -1094,10 +2061,10 @@ async function callGroq(
     if (!content) throw new Error("Empty response from Groq");
 
     const jsonStr = content.replace(/```json\s*|\s*```/g, "").trim();
-    const result = JSON.parse(jsonStr) as MentraRawResult;
+    const result = JSON.parse(jsonStr) as Record<string, unknown>;
 
     console.log("✅ Groq succeeded");
-    return { result, isLowQuality };
+    return { result: result as MentraRawResult, isLowQuality };
   } catch (error: unknown) {
     console.error("❌ Groq failed:", error);
     return null;
@@ -1107,8 +2074,9 @@ async function callGroq(
 async function callDeepSeek(
   prompt: string,
   isRussian: boolean,
-  answersQuality: AnswersQualitySummary
-): Promise<{ result: MentraRawResult; isLowQuality: boolean } | null> {
+  answersQuality: AnswersQualitySummary,
+  overridePrompt?: string
+): Promise<ProviderResult | null> {
   if (!process.env.DEEPSEEK_API_KEY) {
     console.log("❌ DeepSeek API key not configured");
     return null;
@@ -1133,7 +2101,7 @@ async function callDeepSeek(
           role: "system",
           content: getSystemPrompt(isRussian, isLowQuality),
         },
-        { role: "user", content: prompt },
+        { role: "user", content: overridePrompt ?? prompt },
       ],
       temperature: 0.9,
       max_tokens: 3000,
@@ -1143,14 +2111,130 @@ async function callDeepSeek(
     if (!content) throw new Error("Empty response from DeepSeek");
 
     const jsonStr = content.replace(/```json\s*|\s*```/g, "").trim();
-    const result = JSON.parse(jsonStr) as MentraRawResult;
+    const result = JSON.parse(jsonStr) as Record<string, unknown>;
 
     console.log("✅ DeepSeek succeeded");
-    return { result, isLowQuality };
+    return { result: result as MentraRawResult, isLowQuality };
   } catch (error: unknown) {
     console.error("❌ DeepSeek failed:", error);
     return null;
   }
+}
+
+async function regenerateWithProvider(
+  provider: "groq" | "deepseek",
+  prompt: string,
+  isRussian: boolean,
+  answersQuality: AnswersQualitySummary,
+  qualityReasons: string[]
+): Promise<ProviderResult | null> {
+  const regenerationPrompt = buildRegenerationPrompt(
+    prompt,
+    qualityReasons,
+    isRussian
+  );
+
+  if (provider === "groq") {
+    return callGroq(prompt, isRussian, answersQuality, regenerationPrompt);
+  }
+
+  if (provider === "deepseek") {
+    return callDeepSeek(prompt, isRussian, answersQuality, regenerationPrompt);
+  }
+
+  return null;
+}
+
+async function reviewWithProvider(
+  provider: "groq" | "deepseek",
+  answers: string[],
+  language: Language,
+  candidate: MentraResponse,
+  isRussian: boolean,
+  answersQuality: AnswersQualitySummary
+): Promise<ReviewResult | null> {
+  const reviewPrompt = buildReviewPrompt(answers, language, candidate);
+
+  if (provider === "groq") {
+    const reviewed = await callGroq(
+      reviewPrompt,
+      isRussian,
+      answersQuality
+    );
+
+    if (!reviewed) return null;
+
+    try {
+      const normalizedJson = JSON.stringify(reviewed.result);
+      const parsed = JSON.parse(normalizedJson) as {
+        verdict?: unknown;
+        issues?: unknown;
+      };
+
+      const verdict =
+        parsed.verdict === "accept" ||
+        parsed.verdict === "revise" ||
+        parsed.verdict === "fallback"
+          ? parsed.verdict
+          : "revise";
+
+      const issues = Array.isArray(parsed.issues)
+        ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
+        : [];
+
+      return { verdict, issues };
+    } catch {
+      return null;
+    }
+  }
+
+  if (provider === "deepseek") {
+    const reviewed = await callDeepSeek(
+      reviewPrompt,
+      isRussian,
+      answersQuality
+    );
+
+    if (!reviewed) return null;
+
+    try {
+      const normalizedJson = JSON.stringify(reviewed.result);
+      const parsed = JSON.parse(normalizedJson) as {
+        verdict?: unknown;
+        issues?: unknown;
+      };
+
+      const verdict =
+        parsed.verdict === "accept" ||
+        parsed.verdict === "revise" ||
+        parsed.verdict === "fallback"
+          ? parsed.verdict
+          : "revise";
+
+      const issues = Array.isArray(parsed.issues)
+        ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
+        : [];
+
+      return { verdict, issues };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function shouldRunSelfReview(
+  qualityCheck: QualityScoreDetails,
+  result: MentraResponse
+): boolean {
+  if (qualityCheck.score < 85) return true;
+
+  if (result.whyThisResult.length < 3) return true;
+  if (result.keyStrengths.length < 3) return true;
+  if (result.bestFitRoles.length < 2) return true;
+
+  return false;
 }
 
 function mergeRoles(
@@ -1170,10 +2254,87 @@ function mergeRoles(
   return merged.slice(0, maxItems);
 }
 
+function normalizeRoleTitle(role: string, isRussian: boolean): string {
+  return normalizeRoleTitleStrict(role, isRussian);
+}
+
+function isTooBroadRole(role: string): boolean {
+  const lower = normalizeText(role).toLowerCase();
+
+  return [
+    "операционный директор",
+    "директор",
+    "creative director",
+    "креативный директор",
+    "innovation consultant",
+    "consultant",
+    "консультант",
+    "лабораторный исследователь",
+    "researcher",
+    "исследователь",
+    "leader",
+    "лидер",
+    "manager",
+    "менеджер",
+  ].some((pattern) => lower === pattern || lower.includes(pattern));
+}
+
+function normalizeRoleTitleStrict(role: string, isRussian: boolean): string {
+  const cleaned = cleanText(role, { maxLength: 100 });
+  const lower = cleaned.toLowerCase().trim();
+
+  if (ROLE_REPLACEMENTS[lower]) {
+    return isRussian ? ROLE_REPLACEMENTS[lower].ru : ROLE_REPLACEMENTS[lower].en;
+  }
+
+  if (isTooBroadRole(lower)) {
+    if (/creative|креатив|brand|бренд|content|контент/.test(lower)) {
+      return isRussian ? "Креативный продюсер" : "Creative Producer";
+    }
+
+    if (/product|prodact|продакт/.test(lower)) {
+      return isRussian ? "Младший продакт-менеджер" : "Junior Product Manager";
+    }
+
+    if (/research|исследов/.test(lower)) {
+      return isRussian ? "Специалист по качеству" : "Quality Specialist";
+    }
+
+    if (/consult|консульт/.test(lower)) {
+      return isRussian
+        ? "Специалист по улучшению процессов"
+        : "Process Improvement Specialist";
+    }
+
+    if (/операц|director|leader|manager|менеджер/.test(lower)) {
+      return isRussian ? "Координатор процессов" : "Operations Coordinator";
+    }
+  }
+
+  return cleaned;
+}
+
+function dedupeRoles(roles: BestFitRole[]): BestFitRole[] {
+  const seen = new Set<string>();
+  const result: BestFitRole[] = [];
+
+  for (const role of roles) {
+    const key = normalizeText(role.role).toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    result.push(role);
+  }
+
+  return result;
+}
+
 function normalizeModelResult(
   rawResult: MentraRawResult,
   smartFallback: MentraResponse,
-  isRussian: boolean
+  answers: string[],
+  isRussian: boolean,
+  answersQuality: AnswersQualitySummary,
+  language: Language
 ): MentraResponse {
   const normalized: MentraResponse = {
     profileType: cleanText(rawResult.profileType, {
@@ -1197,22 +2358,27 @@ function normalizeModelResult(
       maxItems: 3,
       maxLength: 180,
       removeGeneric: true,
-    }),
+    }).filter((item) => !isWeakStrength(item)),
     workStyle: cleanText(rawResult.workStyle, {
       maxLength: 400,
       fallback: smartFallback.workStyle,
     }),
     bestFitRoles: Array.isArray(rawResult.bestFitRoles)
-      ? rawResult.bestFitRoles
-          .map((item: unknown) => {
-            const roleItem = item as { role?: unknown; explanation?: unknown };
-            return {
-              role: cleanText(roleItem?.role, { maxLength: 100 }),
-              explanation: cleanText(roleItem?.explanation, { maxLength: 300 }),
-            };
-          })
-          .filter((item) => item.role && item.explanation)
-          .slice(0, 3)
+      ? dedupeRoles(
+          rawResult.bestFitRoles
+            .map((item: unknown) => {
+              const roleItem = item as { role?: unknown; explanation?: unknown };
+
+              return {
+                role: normalizeRoleTitle(
+                  cleanText(roleItem?.role, { maxLength: 100 }),
+                  isRussian
+                ),
+                explanation: cleanText(roleItem?.explanation, { maxLength: 300 }),
+              };
+            })
+            .filter((item) => item.role && item.explanation)
+        ).slice(0, 3)
       : [],
     potentialMismatches: cleanList(rawResult.potentialMismatches, {
       maxItems: 2,
@@ -1264,6 +2430,11 @@ function normalizeModelResult(
     _note: smartFallback._note,
   };
 
+    normalized.whyThisResult = filterRegurgitation(
+      normalized.whyThisResult,
+      answers
+    ).filter((item) => !isWeakWhy(item));
+
   if (normalized.whyThisResult.length < 3) {
     normalized.whyThisResult = smartFallback.whyThisResult;
   }
@@ -1281,40 +2452,88 @@ function normalizeModelResult(
     );
   }
 
+  normalized.bestFitRoles = enforceQ10Priority(
+    normalized.bestFitRoles,
+    answers[9] || ""
+  );
+
+    const roleAlignedFallback = buildRoleAlignedFallback(
+      language,
+      answers,
+      answersQuality,
+      normalized.bestFitRoles
+    );
+
+        const inferredTrack = inferTrackFromRoles(normalized.bestFitRoles);
+        const strongSkillsFallback = buildStrongSkillsFallback(language, inferredTrack);
+
+      normalized.actionPlan.validation = normalized.actionPlan.validation.filter(
+        (item) => !isWeakValidation(item)
+      );
+
+     if (normalized.actionPlan.validation.length < 2) {
+       normalized.actionPlan.validation = roleAlignedFallback.actionPlan.validation;
+     }
+
   if (!normalized.potentialMismatches.length) {
-    normalized.potentialMismatches = smartFallback.potentialMismatches;
+    normalized.potentialMismatches = roleAlignedFallback.potentialMismatches;
   }
 
-  if (!normalized.actionPlan.immediate.length) {
-    normalized.actionPlan.immediate = smartFallback.actionPlan.immediate;
-  }
+    if (!normalized.actionPlan.immediate.length) {
+      normalized.actionPlan.immediate = roleAlignedFallback.actionPlan.immediate;
+    }
 
-  if (!normalized.actionPlan.exploration.length) {
-    normalized.actionPlan.exploration = smartFallback.actionPlan.exploration;
-  }
+    if (!normalized.actionPlan.exploration.length) {
+      normalized.actionPlan.exploration = roleAlignedFallback.actionPlan.exploration;
+    }
 
-  if (!normalized.actionPlan.validation.length) {
-    normalized.actionPlan.validation = smartFallback.actionPlan.validation;
-  }
+    if (!normalized.actionPlan.validation.length) {
+      normalized.actionPlan.validation = roleAlignedFallback.actionPlan.validation;
+    }
 
-  if (!normalized.actionPlan.skillsToDevelop.length) {
-    normalized.actionPlan.skillsToDevelop =
-      smartFallback.actionPlan.skillsToDevelop;
-  }
+    if (!normalized.actionPlan.skillsToDevelop.length) {
+      normalized.actionPlan.skillsToDevelop = strongSkillsFallback;
+    }
 
-  if (!normalized.actionPlan.nextMove) {
-    normalized.actionPlan.nextMove = smartFallback.actionPlan.nextMove;
-  }
+    const weakSkillsCount = normalized.actionPlan.skillsToDevelop.filter(
+      (item) => isWeakStrength(item.skill)
+    ).length;
 
-  if (!normalized.recommendedNextStep) {
-    normalized.recommendedNextStep = smartFallback.recommendedNextStep;
-  }
+    if (weakSkillsCount > 0) {
+      normalized.actionPlan.skillsToDevelop = strongSkillsFallback;
+    }
+
+    if (!normalized.actionPlan.nextMove) {
+      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
+    }
+
+    if (!normalized.actionPlan.nextMove) {
+      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
+    }
+
+    if (isWeakNextMove(normalized.actionPlan.nextMove)) {
+      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
+    }
+
+      if (!normalized.recommendedNextStep) {
+        normalized.recommendedNextStep = roleAlignedFallback.recommendedNextStep;
+      }
+
+      if (isWeakRecommendedNextStep(normalized.recommendedNextStep)) {
+        normalized.recommendedNextStep = roleAlignedFallback.recommendedNextStep;
+      }
 
   if (!normalized.profileType) {
     normalized.profileType = isRussian
       ? "Универсал-практик"
       : "Practical Generalist";
   }
+
+  normalized.profileSummary = injectTension(
+    normalized.profileSummary,
+    answers,
+    isRussian
+  );
 
   return normalized;
 }
@@ -1403,29 +2622,143 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const normalized = normalizeModelResult(rawResult, smartFallback, isRussian);
+        const normalized = normalizeModelResult(
+          rawResult,
+          smartFallback,
+          answers,
+          isRussian,
+          answersQuality,
+          language
+        );
 
-    console.log(
-      `✅ Analysis complete, provider: ${provider}, profile: ${normalized.profileType}`
-    );
+        if (process.env.NODE_ENV !== "production") {
+          console.log("🧩 Final roles:", normalized.bestFitRoles);
+          console.log("🧩 Final next step:", normalized.recommendedNextStep);
+          console.log("🧩 Final immediate:", normalized.actionPlan.immediate);
+          console.log("🧩 Final exploration:", normalized.actionPlan.exploration);
+          console.log("🧩 Final validation:", normalized.actionPlan.validation);
+        }
 
-    const rolesList = normalized.bestFitRoles.map((r) => r.role).join(", ");
+        let finalResult = normalized;
+        let qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
 
-    await sendToTelegram(
-      `✅ <b>Новый анализ!</b>\n` +
-        `🤖 Провайдер: ${provider}\n` +
-        `🌐 Язык: ${language}\n` +
-        `👤 Профиль: ${escapeHtml(normalized.profileType)}\n` +
-        `💼 Роли: ${escapeHtml(rolesList)}\n` +
-        `📊 Качество: ${isLowQuality ? "низкое" : "высокое"}`
-    );
+        if (provider !== "fallback" && shouldRunSelfReview(qualityCheck, finalResult)) {
+          const review = await reviewWithProvider(
+            provider,
+            answers,
+            language,
+            finalResult,
+            isRussian,
+            answersQuality
+          );
 
-    return NextResponse.json({
-      ...normalized,
-      provider,
-      confidence: isLowQuality ? "low" : "medium",
-      _note: normalized._note,
-    });
+          if (process.env.NODE_ENV !== "production") {
+            console.log("🧠 Self-review:", review);
+          }
+
+          if (review?.verdict === "fallback") {
+            finalResult = smartFallback;
+            qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
+            provider = "fallback";
+          } else if (
+            review?.verdict === "revise" &&
+            provider !== "fallback"
+          ) {
+            const revisionReasons =
+              review.issues.length > 0
+                ? [...qualityCheck.reasons, ...review.issues]
+                : qualityCheck.reasons;
+
+            const regeneratedResponse = await regenerateWithProvider(
+              provider,
+              prompt,
+              isRussian,
+              answersQuality,
+              revisionReasons
+            );
+
+            if (regeneratedResponse) {
+              const regeneratedNormalized = normalizeModelResult(
+                regeneratedResponse.result,
+                smartFallback,
+                answers,
+                isRussian,
+                answersQuality,
+                language
+              );
+
+              const regeneratedQuality = scoreAnalysisResult(
+                regeneratedNormalized,
+                answers,
+                isRussian
+              );
+
+              if (regeneratedQuality.score >= qualityCheck.score) {
+                finalResult = regeneratedNormalized;
+                qualityCheck = regeneratedQuality;
+              }
+            }
+          }
+        }
+
+        if (qualityCheck.score < 70) {
+          console.log(
+            `⚠️ Still low quality after review/regenerate (${qualityCheck.score}). Falling back.`
+          );
+
+          finalResult = smartFallback;
+          qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
+          provider = "fallback";
+        }
+
+        if (qualityCheck.score < 70) {
+          console.log(
+            `⚠️ Still low quality after regenerate (${qualityCheck.score}). Falling back.`
+          );
+
+          finalResult = smartFallback;
+          qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
+          provider = "fallback";
+        }
+
+        const finalConfidence =
+          isLowQuality
+            ? qualityCheck.score >= 85
+              ? "medium"
+              : "low"
+            : qualityCheck.score >= 85
+              ? "high"
+              : qualityCheck.score >= 70
+                ? "medium"
+                : "low";
+
+        console.log(
+          `✅ Analysis complete, provider: ${provider}, profile: ${finalResult.profileType}, score: ${qualityCheck.score}`
+        );
+
+        const rolesList = finalResult.bestFitRoles.map((r) => r.role).join(", ");
+
+        await sendToTelegram(
+          `✅ <b>Новый анализ!</b>\n` +
+            `🤖 Провайдер: ${provider}\n` +
+            `🌐 Язык: ${language}\n` +
+            `👤 Профиль: ${escapeHtml(finalResult.profileType)}\n` +
+            `💼 Роли: ${escapeHtml(rolesList)}\n` +
+            `📊 Score: ${qualityCheck.score}\n` +
+            `📌 Confidence: ${finalConfidence}`
+        );
+
+        return NextResponse.json({
+          ...finalResult,
+          provider,
+          confidence: finalConfidence,
+          _note: finalResult._note,
+          qualityScore: qualityCheck.score,
+          qualityReasons:
+            process.env.NODE_ENV !== "production"
+              ? qualityCheck.reasons
+              : undefined,
+        });
   } catch (error) {
     console.error("💥 Fatal error:", error);
     const message =
