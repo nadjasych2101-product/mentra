@@ -109,6 +109,11 @@ const WEAK_STRENGTH_PHRASES = [
   "сочувствие",
   "управление процессами",
   "управление проектами",
+  "точность",
+  "независимость",
+  "стратегическое мышление",
+  "спокойствие",
+  "спокойствие под давлением",
   "problem-solving skills",
   "analytical skills",
   "logical thinking",
@@ -124,6 +129,23 @@ const WEAK_STRENGTH_PHRASES = [
   "empathy",
   "project management",
   "process management",
+  "accuracy",
+  "independence",
+  "strategic thinking",
+  "calm under pressure",
+];
+
+const WEAK_ROLE_EXPLANATION_PATTERNS = [
+  "подходит, поскольку",
+  "эта роль требует",
+  "эта роль позволяет",
+  "в этой роли человек сможет",
+  "может применить",
+  "this role requires",
+  "this role allows",
+  "this role aligns",
+  "this role leverages",
+  "fits because",
 ];
 
 const WEAK_WHY_PATTERNS = [
@@ -173,23 +195,16 @@ const WEAK_NEXT_STEP_PATTERNS = [
   "исследовать возможности",
   "узнать больше",
   "почитать про",
-  "пройти курс",
-  "обсудить возможности",
-  "запланировать встречу",
-  "связаться с",
-  "подать заявку",
-  "learn the basics",
+  "подтвердить интерес",
+  "карьерного роста",
+  "варианты карьерного развития",
   "explore opportunities",
   "research opportunities",
   "learn more",
   "read about",
-  "take a course",
-  "discuss opportunities",
-  "schedule informational interviews",
-  "schedule a meeting",
-  "contact professionals",
-  "apply for",
-  "research and network",
+  "confirm your interest",
+  "career growth",
+  "career options",
 ];
 
 const ROLE_REPLACEMENTS: Record<string, { ru: string; en: string }> = {
@@ -290,6 +305,7 @@ const ACTION_STARTERS = [
   "send",
   "record",
   "draft",
+  "ask",
   "составь",
   "найди",
   "сравни",
@@ -308,6 +324,7 @@ const ACTION_STARTERS = [
   "прочитай",
   "запиши",
   "отправь",
+  "спросите",
   "document",
   "conduct",
 ];
@@ -332,6 +349,14 @@ const SYSTEM_PROMPT_RU = `Ты — Mentra, премиальный AI для ка
 14. Q10 — явный сигнал интереса. Учитывай его в ролях и плане.
 15. Не инвертируй смысл слов пользователя.
 16. Не делай слишком узких выводов про data/BI без явных оснований.
+17. Никогда не предлагай "пройти курс", "поговорить с профессионалами", "подать заявку", если пользователь ещё не протестировал интерес на маленьком практическом действии.
+18. Не используй абстрактные названия профилей:
+плохо: "Флексибельный лидер"
+плохо: "Аналитический kontrol"
+хорошо: "Системный проверяющий"
+хорошо: "Организатор исполнения"
+19. Не смешивай языки.
+20. Если ответы пользователя неуверенные — сначала предлагай micro-experiments, а не карьерные решения.
 
 ## JSON СХЕМА
 {
@@ -378,6 +403,26 @@ const SYSTEM_PROMPT_EN = `You are Mentra, a premium AI for career navigation. Yo
 14. Prioritize Q10 as an explicit interest signal.
 15. Do not invert the user's meaning.
 16. Be cautious with narrow data/BI conclusions when evidence is weak.
+17. Never suggest "take a course", "talk to professionals", "apply for jobs", or "speak to a career consultant" unless the user has already tested the direction through a small practical experiment.
+18. Do not invent vague or inflated profile names.
+Bad: "Flexible Leader"
+Bad: "Analytical Expert"
+Bad: "Creative Visionary"
+Good: "Systematic Checker"
+Good: "Execution Organizer"
+Good: "Structured Creator"
+19. Never mix languages or output broken hybrid words.
+20. If the user's answers are uncertain, vague, or exploratory, prioritize small experiments over major career decisions.
+21. Do not recommend formal education, certifications, or courses unless the role explicitly requires credentials.
+22. Avoid generic strengths like:
+"good communicator"
+"leadership"
+"analytical mindset"
+"hardworking"
+"adaptable"
+unless they are made highly specific.
+23. If confidence is low, narrow the recommendation to safe adjacent roles instead of ambitious career jumps.
+
 
 ## JSON SCHEMA
 {
@@ -404,6 +449,40 @@ const SYSTEM_PROMPT_EN = `You are Mentra, a premium AI for career navigation. Yo
 
 Return ONLY clean JSON.`;
 
+const REVIEW_SYSTEM_PROMPT_RU = `Ты — строгий редактор качества Mentra.
+
+Твоя задача — НЕ генерировать новый анализ, а проверить уже готовый результат.
+
+Ты должен вернуть ТОЛЬКО JSON формата:
+{
+  "verdict": "accept" | "revise" | "fallback",
+  "issues": ["проблема 1", "проблема 2"]
+}
+
+Правила:
+- "accept" — если результат достаточно хороший
+- "revise" — если его можно улучшить ещё одним проходом
+- "fallback" — если результат слишком слабый и проще заменить fallback-версией
+
+Никакого текста вне JSON.`;
+
+const REVIEW_SYSTEM_PROMPT_EN = `You are a strict Mentra quality reviewer.
+
+Your task is NOT to generate a new analysis, but to review an existing one.
+
+Return ONLY JSON in this format:
+{
+  "verdict": "accept" | "revise" | "fallback",
+  "issues": ["issue 1", "issue 2"]
+}
+
+Rules:
+- "accept" if the result is good enough
+- "revise" if it can be improved with one more pass
+- "fallback" if the result is too weak and should be replaced
+
+Do not output anything except JSON.`;
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -423,6 +502,10 @@ function isGeneric(text: string): boolean {
 function isWeakStrength(text: string): boolean {
   const lower = text.toLowerCase();
   return WEAK_STRENGTH_PHRASES.some((phrase) => lower.includes(phrase));
+}
+
+function isWeakRoleExplanation(text: string): boolean {
+  return matchesAnyPattern(text, WEAK_ROLE_EXPLANATION_PATTERNS);
 }
 
 function isVagueAction(text: string): boolean {
@@ -481,6 +564,11 @@ function cleanBrokenText(text: string): string {
     .replace(/trước/gi, "")
     .replace(/rõкими/gi, "чёткими")
     .replace(/monotон/gi, "монотон")
+    .replace(/kontrol/gi, "контроль")
+    .replace(/несpecific/gi, "неконкретные")
+    .replace(/флексибельн/gi, "гибк")
+    .replace(/в-productsной/gi, "в продуктовой")
+    .replace(/tránhать/gi, "избегать")
     .replace(/一定/gi, "")
     .replace(/解决/gi, "")
     .replace(/[一-龯々〆ヵヶ]+/g, "")
@@ -542,8 +630,62 @@ function isWeakWhy(text: string): boolean {
   return isParaphrasePattern(text) || matchesAnyPattern(text, WEAK_WHY_PATTERNS);
 }
 
+function isWeakSkillItem(item: SkillToDevelop): boolean {
+  const weakSkillName = isWeakStrength(item.skill);
+
+  const weakWhy =
+    item.why.length < 30 ||
+    /^(это важно|важно для|необходимо для|helps|important for|needed for)\b/i.test(
+      item.why.trim()
+    );
+
+  const weakHow =
+    item.howToLearn.length < 30 ||
+    /^(курсы|семинары|практика|courses|seminars|practice|read|study)\b/i.test(
+      item.howToLearn.trim()
+    );
+
+  return weakSkillName || weakWhy || weakHow;
+}
+
 function isWeakValidation(text: string): boolean {
   return matchesAnyPattern(text, WEAK_VALIDATION_PATTERNS);
+}
+
+function isWeakWorkStyle(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  return (
+    lower.length < 60 ||
+    lower.includes("лучше всего вы работаете там, где есть понятная цель") ||
+    lower.includes("you work best when there is a clear goal") ||
+    lower.includes("structured approach") ||
+    lower.includes("methodical and structured")
+  );
+}
+
+function isWeakProfileSummary(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  return (
+    lower.length < 100 ||
+    /лучше всего раскрываетесь там, где/i.test(lower) ||
+    /you do best where/i.test(lower) ||
+    /(человек, который|человек, любящий|человек, которому|a person who|someone who loves)/i.test(lower) ||
+    /a person who/i.test(lower)
+  );
+}
+
+function isWeakMismatch(text: string): boolean {
+  const lower = normalizeText(text).toLowerCase();
+
+  return (
+    lower.length < 20 ||
+    /жёстко регламентированная среда без пространства/i.test(lower) ||
+    /работа, где много суеты, но мало ясных критериев/i.test(lower) ||
+    /rigid environment with no room/i.test(lower) ||
+    /a lot of noise but very few clear quality criteria/i.test(lower)
+  );
 }
 
 function isWeakRecommendedNextStep(text: string): boolean {
@@ -611,8 +753,10 @@ function injectTension(profileSummary: string, answers: string[], isRussian: boo
   const dislikesUncertainty =
     /неопредел|uncertain/i.test(allText);
 
-  const alreadyHasTension =
-    /противореч|tension|contradiction/i.test(profileSummary.toLowerCase());
+const alreadyHasTension =
+  /противореч|напряж|tension|contradiction|свобода в способе действия/i.test(
+    profileSummary.toLowerCase()
+  );
 
   if (alreadyHasTension) return profileSummary;
 
@@ -645,6 +789,14 @@ type ReviewResult = {
   verdict: "accept" | "revise" | "fallback";
   issues: string[];
 };
+
+type MentraTrack =
+  | "jewelry"
+  | "testing"
+  | "creative"
+  | "people"
+  | "execution"
+  | "general";
 
 function scoreAnalysisResult(
   result: MentraResponse,
@@ -758,15 +910,6 @@ function scoreAnalysisResult(
       isRussian
         ? "Есть пересказ ответов пользователя"
         : "Contains user-answer regurgitation"
-    );
-  }
-
-  if (isWeakAction(result.recommendedNextStep)) {
-    score -= 10;
-    reasons.push(
-      isRussian
-        ? "Слабый recommendedNextStep"
-        : "Weak recommendedNextStep"
     );
   }
 
@@ -892,6 +1035,39 @@ function scoreAnalysisResult(
         isRussian
           ? "recommendedNextStep слишком общий"
           : "recommendedNextStep is too generic"
+      );
+    }
+
+  const weakRoleExplanationCount = result.bestFitRoles.filter((role) =>
+    isWeakRoleExplanation(role.explanation)
+  ).length;
+
+  if (weakRoleExplanationCount > 0) {
+    score -= Math.min(12, weakRoleExplanationCount * 4);
+    reasons.push(
+      isRussian
+        ? "Объяснения ролей слишком шаблонные"
+        : "Role explanations are too generic"
+    );
+  }
+
+    const weakMismatchCount = result.potentialMismatches.filter(isWeakMismatch).length;
+    if (weakMismatchCount > 0) {
+      score -= Math.min(8, weakMismatchCount * 4);
+      reasons.push(
+        isRussian
+          ? "potentialMismatches слишком шаблонные"
+          : "potentialMismatches are too templated"
+      );
+    }
+
+    const weakSkillsCount = result.actionPlan.skillsToDevelop.filter(isWeakSkillItem).length;
+    if (weakSkillsCount > 0) {
+      score -= Math.min(12, weakSkillsCount * 4);
+      reasons.push(
+        isRussian
+          ? "skillsToDevelop слишком общие"
+          : "skillsToDevelop are too generic"
       );
     }
 
@@ -1080,9 +1256,13 @@ function extractSignals(answers: string[]) {
     q10,
     hasAnalysis: /analy|анализ|данные|data|pattern|паттерн/i.test(allText),
     hasPeople:
-      /people|люд|команд|team|клиент|client|support|поддерж|помогать|объяснять/i.test(
+      /mentor|teaching|teach|coach|community|support role|help people|обуч|настав|коуч|ментор|объяснять людям|сопровождать/i.test(
         allText
       ),
+    hasCoordination:
+    /координир|organize people|manage workflow|operations|team coordination|организовывать работу/i.test(allText),
+    hasUncertainty:
+     /idk|not sure|maybe|whatever|don't know|не знаю|без понятия/i.test(allText),
     hasCreate:
       /creat|твор|созда|дизайн|design|brand|бренд|концеп/i.test(allText),
     hasStructure:
@@ -1096,6 +1276,14 @@ function extractSignals(answers: string[]) {
     q10Testing: /тест|qa|quality|test/i.test(q10),
     q10Creative: /креатив|творч|creative|дизайн/i.test(q10),
     q10People: /люд|образован|обучен|тренер|коуч/i.test(q10),
+    hasExecution:
+      /доводить|довести|делать до конца|заканчивать|исполнять|внедрять|собирать результат|execute|execution|deliver|finish|complete|implement|ship/i.test(allText),
+
+    likesConcreteOutput:
+      /результат|конкретн|практич|готовый результат|видимый итог|visible outcome|practical|deliverable|outcome/i.test(allText),
+
+    likesStableProcess:
+      /процесс|ритм|предсказуем|стабильн|routine|workflow|stable|predictable/i.test(allText),
   };
 }
 
@@ -1113,7 +1301,26 @@ function buildFallbackResponse(
   let profileType = "";
   let bestFitRoles: BestFitRole[] = [];
 
-  if (signals.q10Jewelry) {
+  if (signals.hasUncertainty) {
+    profileType = isRussian ? "Исследователь направлений" : "Direction Explorer";
+
+    bestFitRoles = [
+      {
+        role: isRussian ? "Стажёр в проектной роли" : "Project Intern",
+        explanation: isRussian
+          ? "Сейчас важнее безопасно попробовать разные рабочие форматы, чем сразу выбирать узкую карьерную роль."
+          : "Right now it is better to safely test different work formats than to lock into a narrow career role.",
+      },
+      {
+        role: isRussian
+          ? "Ассистент проектной команды"
+          : "Project Team Assistant",
+        explanation: isRussian
+          ? "Подходит как мягкий вход: можно попробовать разные задачи, увидеть, что даётся легче, и не делать слишком жёсткий выбор заранее."
+          : "A softer entry point: it lets you try different tasks, notice what comes naturally, and avoid choosing too narrowly too early.",
+      },
+    ];
+  } else if (signals.q10Jewelry) {
     profileType = isRussian ? "Исследователь-оценщик" : "Appraiser-Researcher";
     bestFitRoles = [
       {
@@ -1179,6 +1386,25 @@ function buildFallbackResponse(
         explanation: isRussian
           ? "Хороший вариант, если важны человеческие связи, поддержка и сопровождение."
           : "A strong option if relationships, support, and guidance matter.",
+      },
+    ];
+  } else if (signals.hasExecution && signals.likesConcreteOutput) {
+    profileType = isRussian
+      ? "Исполнитель-практик"
+      : "Execution-Oriented Builder";
+
+    bestFitRoles = [
+      {
+        role: isRussian ? "Операционный координатор" : "Operations Coordinator",
+        explanation: isRussian
+          ? "Подходит человеку, который умеет собирать задачу в рабочий процесс и доводить её до понятного результата."
+          : "Fits someone who can turn a task into a working process and carry it through to a clear result.",
+      },
+      {
+        role: isRussian ? "Координатор проектов" : "Project Coordinator",
+        explanation: isRussian
+          ? "Хороший вариант, если важны движение вперёд, ответственность за ход работы и практический итог."
+          : "A strong option if progress, ownership of execution, and practical outcomes matter.",
       },
     ];
   } else if (signals.hasAnalysis && signals.hasStructure) {
@@ -1249,7 +1475,8 @@ function buildFallbackResponse(
     ];
   }
 
-  const roleExample = bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
+  const roleExample =
+    bestFitRoles[0]?.role || (isRussian ? "специалист" : "specialist");
 
   const chaosInterpretation = signals.q8Chaos
     ? isRussian
@@ -1263,456 +1490,372 @@ function buildFallbackResponse(
         ? "Лучше всего вы работаете там, где есть понятная цель и свобода в способе её достижения."
         : "You work best when there is a clear goal and freedom in how to reach it.";
 
-  return {
-    profileType,
-    profileSummary: isRussian
-      ? signals.q10Jewelry
-        ? "Вы тяготеете к точной и предметной работе, где важно не просто делать, а разбираться, сравнивать и оценивать. Вам подходит формат, в котором есть критерии, детали и возможность самостоятельно выстраивать ход анализа."
-        : signals.q10Testing
-          ? "Вам ближе работа, где ценятся точность, проверка и внимательность к деталям. Вы хорошо проявляетесь там, где нужно замечать несоответствия и доводить результат до более надёжного состояния."
-          : signals.q10Creative
-            ? "Вас заряжает создание нового, но лучше всего идеи раскрываются у вас тогда, когда их можно собрать в понятную форму. Вам важно не просто придумать, а увидеть, как замысел становится результатом."
-            : signals.q10People
-              ? "Вы тяготеете к ролям, где можно быть полезной другим людям через объяснение, поддержку и сопровождение. Вам важно чувствовать, что ваша работа имеет понятный человеческий смысл."
-              : "Вы лучше всего раскрываетесь там, где можно не просто выполнять задачу, а понимать её логику и влиять на качество результата. Вам подходит сочетание самостоятельности, конкретики и практической пользы."
-      : signals.q10Jewelry
-        ? "You lean toward precise, object-focused work where it matters not just to do the task, but to compare, assess, and understand. You fit formats with criteria, detail, and enough autonomy to shape your own analysis."
-        : signals.q10Testing
-          ? "You are drawn to work built on precision, checking, and attention to detail. You perform well where spotting inconsistencies and improving reliability matters."
-          : signals.q10Creative
-            ? "Creating new things energizes you, but your ideas work best when they can be shaped into something concrete. It matters to you not only to imagine, but to turn ideas into outcomes."
-            : signals.q10People
-              ? "You are drawn to roles where you can be useful through explanation, support, and guidance. It matters to you that your work has visible human value."
-              : "You do best where you are not just executing tasks, but understanding their logic and improving the final result. A mix of autonomy, clarity, and practical usefulness suits you well.",
-    recommendedNextStep: isRussian
-      ? signals.q10Jewelry
-        ? "Найдите 3 источника по теме оценки ювелирных изделий и выпишите, какие знания и инструменты там повторяются чаще всего."
-        : signals.q10Testing
-          ? "Найдите 3 вакансии QA-специалиста и выделите повторяющиеся требования к навыкам и инструментам."
-          : signals.q10Creative
-            ? "Оформите одну свою идею в короткий текст или 2-3 слайда и покажите её одному человеку для обратной связи."
-            : signals.q10People
-              ? "Напишите 3 вопроса человеку из роли, связанной с поддержкой или обучением, и найдите 2-3 профиля, кому их можно отправить."
-              : "Найдите 3 подходящие вакансии и выпишите повторяющиеся требования — это даст более реалистичное понимание направления."
-      : signals.q10Jewelry
-        ? "Find 3 sources about jewelry appraisal and note which knowledge areas and tools appear most often."
-        : signals.q10Testing
-          ? "Find 3 QA job postings and highlight recurring requirements in skills and tools."
-          : signals.q10Creative
-            ? "Turn one of your ideas into a short text or 2-3 slides and show it to one person for feedback."
-            : signals.q10People
-              ? "Write 3 questions for someone in a support or learning-related role and find 2-3 profiles you could send them to."
-              : "Find 3 relevant job postings and note recurring requirements to get a more realistic picture of the direction.",
-    whyThisResult: isRussian
-      ? signals.q10Jewelry
+    return {
+      profileType,
+
+      profileSummary: isRussian
+        ? signals.hasUncertainty
+          ? "Сейчас у вас не столько готовый карьерный вектор, сколько этап разведки. Это не слабость: вам важно попробовать несколько небольших форматов работы и по фактам понять, где появляется энергия, ясность и ощущение прогресса."
+          : signals.q10Jewelry
+            ? "Вы тяготеете к точной и предметной работе, где важно не просто делать, а разбираться, сравнивать и оценивать. Вам подходит формат, в котором есть критерии, детали и возможность самостоятельно выстраивать ход анализа."
+            : signals.q10Testing
+              ? "Вам ближе работа, где ценятся точность, проверка и внимательность к деталям. Вы хорошо проявляетесь там, где нужно замечать несоответствия и доводить результат до более надёжного состояния."
+              : signals.q10Creative
+                ? "Вас заряжает создание нового, но лучше всего идеи раскрываются у вас тогда, когда их можно собрать в понятную форму. Вам важно не просто придумать, а увидеть, как замысел становится результатом."
+                : signals.q10People
+                  ? "Вы тяготеете к ролям, где можно быть полезной другим людям через объяснение, поддержку и сопровождение. Вам важно чувствовать, что ваша работа имеет понятный человеческий смысл."
+                  : signals.hasExecution && signals.likesConcreteOutput
+                    ? "Вам ближе работа, где задача не зависает в обсуждениях, а постепенно превращается в готовый результат. Вы хорошо раскрываетесь там, где можно собрать процесс, удержать ход выполнения и видеть практический итог."
+                    : "Вы лучше всего раскрываетесь там, где можно не просто выполнять задачу, а понимать её логику и влиять на качество результата. Вам подходит сочетание самостоятельности, конкретики и практической пользы."
+        : signals.hasUncertainty
+          ? "You are not at a fixed career direction yet; you are in a discovery phase. That is not a weakness: you need to test a few small work formats and notice where energy, clarity, and a sense of progress appear."
+          : signals.q10Jewelry
+            ? "You lean toward precise, object-focused work where it matters not just to do the task, but to compare, assess, and understand. You fit formats with criteria, detail, and enough autonomy to shape your own analysis."
+            : signals.q10Testing
+              ? "You are drawn to work built on precision, checking, and attention to detail. You perform well where spotting inconsistencies and improving reliability matters."
+              : signals.q10Creative
+                ? "Creating new things energizes you, but your ideas work best when they can be shaped into something concrete. It matters to you not only to imagine, but to turn ideas into outcomes."
+                : signals.q10People
+                  ? "You are drawn to roles where you can be useful through explanation, support, and guidance. It matters to you that your work has visible human value."
+                  : signals.hasExecution && signals.likesConcreteOutput
+                    ? "You are drawn to work where tasks do not stay in discussion forever, but gradually become finished outcomes. You perform well where you can organize the process, maintain execution flow, and see practical results."
+                    : "You do best where you are not just executing tasks, but understanding their logic and improving the final result. A mix of autonomy, clarity, and practical usefulness suits you well.",
+
+      recommendedNextStep: isRussian
+        ? signals.hasUncertainty
+          ? "Выберите 3 маленькие пробные задачи из разных сфер и после каждой запишите: было ли понятно, интересно и хотелось ли продолжать."
+          : signals.q10Jewelry
+            ? "Найдите 3 источника по теме оценки ювелирных изделий и выпишите, какие знания и инструменты там повторяются чаще всего."
+            : signals.q10Testing
+              ? "Найдите 3 вакансии QA-специалиста и выделите повторяющиеся требования к навыкам и инструментам."
+              : signals.q10Creative
+                ? "Оформите одну свою идею в короткий текст или 2-3 слайда и покажите её одному человеку для обратной связи."
+                : signals.q10People
+                  ? "Напишите 3 вопроса человеку из роли, связанной с поддержкой или обучением, и найдите 2-3 профиля, кому их можно отправить."
+                  : signals.hasExecution && signals.likesConcreteOutput
+                    ? "Возьмите одну небольшую задачу и разложите её на шаги: цель, порядок действий, критерий готовности и возможные блокеры."
+                    : "Найдите 3 подходящие вакансии и выпишите повторяющиеся требования — это даст более реалистичное понимание направления."
+        : signals.hasUncertainty
+          ? "Choose 3 small trial tasks from different areas and after each one note whether it felt clear, interesting, and worth continuing."
+          : signals.q10Jewelry
+            ? "Find 3 sources about jewelry appraisal and note which knowledge areas and tools appear most often."
+            : signals.q10Testing
+              ? "Find 3 QA job postings and highlight recurring requirements in skills and tools."
+              : signals.q10Creative
+                ? "Turn one of your ideas into a short text or 2-3 slides and show it to one person for feedback."
+                : signals.q10People
+                  ? "Write 3 questions for someone in a support or learning-related role and find 2-3 profiles you could send them to."
+                  : signals.hasExecution && signals.likesConcreteOutput
+                    ? "Take one small task and break it down into: goal, action steps, definition of done, and possible blockers."
+                    : "Find 3 relevant job postings and note recurring requirements to get a more realistic picture of the direction.",
+
+      whyThisResult: buildStrongWhyFallback(language, signals),
+
+      keyStrengths: isRussian
         ? [
-            "Вас тянет к предметной экспертизе, а не только к общим рассуждениям.",
-            "Вы выглядите как человек, которому важны критерии, детали и точность.",
-            "Самостоятельность работает для вас лучше всего, когда есть понятный объект анализа.",
+            signals.hasUncertainty
+              ? "Готовы честно признавать неопределённость вместо того, чтобы искусственно выбирать случайное направление."
+              : "Быстро выделяете главное в задаче и не тратите много времени на второстепенное.",
+            "Можете работать самостоятельно, но не разваливаете процесс — удерживаете внутреннюю рамку.",
+            signals.hasPeople
+              ? "Умеете переводить сложное в понятные объяснения без давления и лишней сложности."
+              : signals.hasExecution && signals.likesConcreteOutput
+                ? "Умеете превращать размытую задачу в понятный порядок действий."
+                : signals.hasUncertainty
+                  ? "Можете сравнивать варианты через маленькие пробы, а не через бесконечные размышления."
+                  : "Замечаете слабые места в результате и естественно тянетесь к улучшению качества.",
           ]
-        : signals.q10Testing
-          ? [
-              "Вам ближе логика проверки, чем хаотичное движение без критериев.",
-              "Вы хорошо проявляетесь там, где ценятся точность и надёжность результата.",
-              "Самостоятельность для вас особенно полезна, когда есть понятные стандарты качества.",
-            ]
-          : signals.q10Creative
-            ? [
-                "Идеи дают вам энергию, но вам важно не потерять их по дороге к результату.",
-                "Лучше всего вы раскрываетесь, когда можно сочетать свободу и рамку.",
-                "Для вас важен не только процесс придумывания, но и ощутимый итог.",
-              ]
-            : signals.q10People
-              ? [
-                  "Вас тянет к ролям, где можно быть полезной через поддержку и сопровождение.",
-                  "Вы выглядите как человек, которому важно объяснять и помогать, а не просто выполнять формальные задачи.",
-                  "Вам подходит работа, где есть человеческий контакт и ясная цель.",
-                ]
-              : [
-                  "Вам важно понимать логику задачи, а не просто следовать инструкции.",
-                  "Вы лучше раскрываетесь там, где можно сочетать точность и самостоятельность.",
-                  "Практический интерес к предмету для вас важнее, чем громкое название роли.",
-                ]
-      : signals.q10Jewelry
-        ? [
-            "You are drawn to concrete expertise rather than only abstract discussion.",
-            "You come across as someone who values criteria, detail, and precision.",
-            "Autonomy works best for you when there is a clear object of analysis.",
-          ]
-        : signals.q10Testing
-          ? [
-              "You are more aligned with verification logic than with motion without standards.",
-              "You perform well where accuracy and reliability matter.",
-              "Autonomy is especially useful for you when quality standards are clear.",
-            ]
-          : signals.q10Creative
-            ? [
-                "Ideas energize you, but you also need them to reach a concrete result.",
-                "You do best when freedom is balanced by structure.",
-                "It matters to you not only to imagine, but to make something real.",
-              ]
-            : signals.q10People
-              ? [
-                  "You are drawn to roles where you can support and guide others.",
-                  "You seem motivated by helping and explaining rather than only formal execution.",
-                  "Work with human contact and a clear purpose fits you well.",
-                ]
-              : [
-                  "You want to understand the logic of the task, not just follow instructions.",
-                  "You do best where precision and autonomy can coexist.",
-                  "Practical interest in the subject matters more to you than a flashy role title.",
-                ],
-    keyStrengths: isRussian
-      ? [
-          "Быстро выделяете главное в задаче и не тратите много времени на второстепенное.",
-          "Можете работать самостоятельно, но не разваливаете процесс — удерживаете внутреннюю рамку.",
-          signals.hasPeople
-            ? "Умеете переводить сложное в понятные объяснения без давления и лишней сложности."
-            : "Замечаете слабые места в результате и естественно тянетесь к улучшению качества.",
-        ]
         : [
-            "You quickly isolate the core of a task instead of getting lost in secondary details.",
+            signals.hasUncertainty
+              ? "You can honestly acknowledge uncertainty instead of forcing yourself into a random direction."
+              : "You quickly isolate the core of a task instead of getting lost in secondary details.",
             "You can work independently without losing structure or internal discipline.",
             signals.hasPeople
               ? "You can translate complex things into clear explanations without sounding heavy or rigid."
-              : "You naturally notice weak points in a result and want to improve the quality of it.",
+              : signals.hasExecution && signals.likesConcreteOutput
+                ? "You can turn a vague task into a clear sequence of actions."
+                : signals.hasUncertainty
+                  ? "You can compare options through small experiments rather than endless thinking."
+                  : "You naturally notice weak points in a result and want to improve the quality of it.",
           ],
-    workStyle: isRussian
-      ? `${chaosInterpretation} Вы обычно начинаете с общего понимания задачи, затем отсеиваете лишнее через логику и только потом переходите к реализации.`
-      : `${chaosInterpretation} You usually start by building a broad understanding of the task, then filter the noise through logic, and only after that move into execution.`,
-    bestFitRoles,
-    potentialMismatches: isRussian
+
+      workStyle: isRussian
+        ? signals.hasUncertainty
+          ? "Работаете лучше через короткие пробы: сначала пробуете маленький фрагмент задачи, затем оцениваете, стало ли понятнее и захотелось ли продолжать. Сейчас вам вредны слишком большие решения заранее — полезнее собирать направление через факты."
+          : `${chaosInterpretation} Вы обычно начинаете с общего понимания задачи, затем отсеиваете лишнее через логику и только потом переходите к реализации.`
+        : signals.hasUncertainty
+          ? "You work best through short trials: first trying a small piece of a task, then checking whether it became clearer and whether you wanted to continue. Big decisions too early are not helpful right now; evidence from small experiments is more useful."
+          : `${chaosInterpretation} You usually start by building a broad understanding of the task, then filter the noise through logic, and only after that move into execution.`,
+
+      bestFitRoles,
+
+      potentialMismatches: isRussian
+        ? signals.hasUncertainty
+          ? [
+              "Роль, где нужно сразу выбрать узкую специализацию без пробного периода.",
+              "Среда, где ошибки в выборе направления воспринимаются как провал, а не как часть исследования.",
+            ]
+          : [
+              "Жёстко регламентированная среда без пространства для собственного подхода.",
+              "Работа, где много суеты, но мало ясных критериев качества.",
+            ]
+        : signals.hasUncertainty
+          ? [
+              "A role that requires choosing a narrow specialization immediately without a trial period.",
+              "An environment where a wrong direction is treated as failure rather than part of discovery.",
+            ]
+          : [
+              "A rigid environment with no room for your own approach.",
+              "Work with a lot of noise but very few clear quality criteria.",
+            ],
+
+      actionPlan: {
+        immediate: isRussian
+          ? signals.hasUncertainty
+            ? [
+                "Запишите 5 задач, которые вы готовы попробовать без долгой подготовки.",
+                "Выберите 3 из них и выполните каждую в мини-формате до 30 минут.",
+              ]
+            : signals.q10Jewelry
+              ? [
+                  "Сохраните 3 источника по теме оценки ювелирных изделий и выпишите по 2-3 повторяющихся требования или знания.",
+                  "Посмотрите одно вводное видео от геммолога или оценщика и запишите 2 наблюдения.",
+                ]
+              : signals.q10Testing
+                ? [
+                    "Сохраните 3 вакансии QA и выпишите, какие инструменты и навыки повторяются чаще всего.",
+                    "Протестируйте одну простую функцию на сайте или в приложении и кратко запишите, что вы проверяли.",
+                  ]
+                : signals.q10Creative
+                  ? [
+                      "Запишите 3 идеи для улучшения знакомого продукта, сервиса или контента.",
+                      "Оформите одну идею в короткий текстовый или визуальный набросок.",
+                    ]
+                  : signals.q10People
+                    ? [
+                        "Составьте список из 3 организаций или сообществ, где нужны наставники, координаторы или помощники.",
+                        "Напишите короткое сообщение о том, чем вы могли бы быть полезны в такой роли.",
+                      ]
+                    : signals.hasExecution && signals.likesConcreteOutput
+                      ? [
+                          "Выберите одну небольшую задачу и запишите её цель, критерий готовности и первый следующий шаг.",
+                          "Разложите эту задачу на 5-7 конкретных действий в правильном порядке.",
+                        ]
+                      : [
+                          "Сохраните 3 вакансии и выпишите по одному повторяющемуся требованию из каждой.",
+                          "Набросайте 3 пункта о том, как бы вы улучшили знакомый вам процесс.",
+                        ]
+          : signals.hasUncertainty
+            ? [
+                "Write down 5 tasks you would be willing to try without long preparation.",
+                "Choose 3 of them and complete each one in a mini-format of up to 30 minutes.",
+              ]
+            : signals.q10Jewelry
+              ? [
+                  "Save 3 sources about jewelry appraisal and note 2-3 recurring requirements or knowledge areas from each.",
+                  "Watch one introductory video from a gemologist or appraiser and write down 2 observations.",
+                ]
+              : signals.q10Testing
+                ? [
+                    "Save 3 QA job postings and note which tools and skills appear most often.",
+                    "Test one simple feature on a site or app and briefly write down what you checked.",
+                  ]
+                : signals.q10Creative
+                  ? [
+                      "Write down 3 ideas for improving a familiar product, service, or piece of content.",
+                      "Turn one idea into a short textual or visual draft.",
+                    ]
+                  : signals.q10People
+                    ? [
+                        "List 3 organizations or communities that need mentors, coordinators, or helpers.",
+                        "Write a short message explaining how you could be useful in such a role.",
+                      ]
+                    : signals.hasExecution && signals.likesConcreteOutput
+                      ? [
+                          "Choose one small task and write down its goal, definition of done, and next action.",
+                          "Break that task into 5-7 concrete actions in the right order.",
+                        ]
+                      : [
+                          "Save 3 job postings and note one recurring requirement from each.",
+                          "Jot down 3 bullet points on how you would improve a process you know.",
+                        ],
+
+        exploration: isRussian
+          ? signals.hasUncertainty
+            ? [
+                "Посмотрите 3 разных направления: проектная работа, поддержка людей и работа с качеством. Для каждого выпишите, что вас привлекает и что отталкивает.",
+                "Найдите 2-3 человека с разными ролями и сравните, какие задачи повторяются в их работе.",
+              ]
+            : signals.hasExecution && signals.likesConcreteOutput
+              ? [
+                  "Посмотрите 2-3 профиля операционных координаторов или координаторов проектов и выпишите, какие задачи у них повторяются.",
+                  "Найдите один пример проектного плана или чек-листа и разберите, как там устроен порядок выполнения.",
+                ]
+              : [
+                  `Проведите 15-минутный разговор с человеком, который работает в роли "${roleExample}". Спросите: "Что самое неожиданное в работе?" и "Какой навык недооценивают новички?"`,
+                  `Проанализируйте 3 профиля "${roleExample}" и выпишите общие элементы в опыте и навыках.`,
+                ]
+          : signals.hasUncertainty
+            ? [
+                "Review 3 different directions: project work, people support, and quality-focused work. For each one, note what attracts you and what pushes you away.",
+                "Find 2-3 people in different roles and compare which tasks repeat in their work.",
+              ]
+            : signals.hasExecution && signals.likesConcreteOutput
+              ? [
+                  "Review 2-3 profiles of operations coordinators or project coordinators and note which tasks repeat.",
+                  "Find one example of a project plan or checklist and analyze how the execution flow is structured.",
+                ]
+              : [
+                  `Conduct a 15-minute conversation with someone working as a "${roleExample}". Ask: "What is the most surprising part of the job?" and "What skill do beginners underestimate?"`,
+                  `Analyze 3 "${roleExample}" profiles and note common patterns in experience and skills.`,
+                ],
+
+        validation: buildValidationFallback(
+          language,
+          signals.hasUncertainty
+            ? "general"
+            : signals.hasExecution && signals.likesConcreteOutput
+              ? "execution"
+              : signals.q10Jewelry
+                ? "jewelry"
+                : signals.q10Testing
+                  ? "testing"
+                  : signals.q10Creative
+                    ? "creative"
+                    : signals.q10People
+                      ? "people"
+                      : "general"
+        ),
+
+        skillsToDevelop: buildStrongSkillsFallback(
+          language,
+          signals.hasUncertainty
+            ? "general"
+            : signals.hasExecution && signals.likesConcreteOutput
+              ? "execution"
+              : signals.q10Jewelry
+                ? "jewelry"
+                : signals.q10Testing
+                  ? "testing"
+                  : signals.q10Creative
+                    ? "creative"
+                    : signals.q10People
+                      ? "people"
+                      : "general"
+        ),
+
+        nextMove: isRussian
+          ? signals.hasUncertainty
+            ? "В течение недели выполните три мини-пробы по 30 минут и выберите одно направление, которое дало больше всего ясности или энергии."
+            : signals.q10Jewelry
+              ? "В течение недели выберите один вводный материал по геммологии и попробуйте применить его к оценке одного реального объекта."
+              : signals.q10Testing
+                ? "В течение недели пройдите один короткий вводный материал по QA и оформите один пробный баг-репорт."
+                : signals.q10Creative
+                  ? "В течение недели доведите одну идею до короткого оформленного результата и получите хотя бы один внешний комментарий."
+                  : signals.q10People
+                    ? "В течение недели найдите одну реальную возможность попробовать себя в роли помощника, наставника или координатора хотя бы в небольшом формате."
+                    : signals.hasExecution && signals.likesConcreteOutput
+                      ? "В течение недели доведите одну небольшую задачу до готового результата и зафиксируйте, какие шаги помогли не потерять ход выполнения."
+                      : "Выберите один небольшой проект и доведите его до законченного результата в течение двух недель."
+          : signals.hasUncertainty
+            ? "Within a week, complete three 30-minute mini-trials and choose one direction that gave you the most clarity or energy."
+            : signals.q10Jewelry
+              ? "Within a week, choose one introductory gemology resource and apply it to evaluating one real object."
+              : signals.q10Testing
+                ? "Within a week, complete one short QA introduction and write one trial bug report."
+                : signals.q10Creative
+                  ? "Within a week, take one idea to a short finished format and get at least one external comment on it."
+                  : signals.q10People
+                    ? "Within a week, find one real opportunity to try a helper, mentor, or coordinator role, even in a small format."
+                    : signals.hasExecution && signals.likesConcreteOutput
+                      ? "Within a week, bring one small task to a finished result and note which steps helped you keep execution moving."
+                      : "Choose one small project and bring it to a finished result within two weeks.",
+      },
+
+      _note: isLowQuality
+        ? isRussian
+          ? "⚠️ Анализ основан на коротких ответах."
+          : "⚠️ Analysis based on short answers."
+        : undefined,
+    };
+}
+
+function buildValidationFallback(
+  language: Language,
+  track: MentraTrack
+): string[] {
+  const isRussian = language === "ru";
+
+  if (track === "jewelry") {
+    return isRussian
       ? [
-          "Жёстко регламентированная среда без пространства для собственного подхода.",
-          "Работа, где много суеты, но мало ясных критериев качества.",
+          "Попробуйте сделать пробную оценку любого украшения или камня по открытым критериям и запишите ход мыслей.",
+          "Покажите свои заметки в тематическом сообществе или знакомому, который разбирается в теме, и попросите комментарий.",
         ]
       : [
-          "A rigid environment with no room for your own approach.",
-          "Work with a lot of noise but very few clear quality criteria.",
-        ],
-    actionPlan: {
-      immediate: isRussian
-        ? signals.q10Jewelry
-          ? [
-              "Сохраните 3 источника по теме оценки ювелирных изделий и выпишите по 2-3 повторяющихся требования или знания.",
-              "Посмотрите одно вводное видео от геммолога или оценщика и запишите 2 наблюдения.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Сохраните 3 вакансии QA и выпишите, какие инструменты и навыки повторяются чаще всего.",
-                "Протестируйте одну простую функцию на сайте или в приложении и кратко запишите, что вы проверяли.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Запишите 3 идеи для улучшения знакомого продукта, сервиса или контента.",
-                  "Оформите одну идею в короткий текстовый или визуальный набросок.",
-                ]
-              : signals.q10People
-                ? [
-                    "Составьте список из 3 организаций или сообществ, где нужны наставники, координаторы или помощники.",
-                    "Напишите короткое сообщение о том, чем вы могли бы быть полезны в такой роли.",
-                  ]
-                : [
-                    "Сохраните 3 вакансии и выпишите по одному повторяющемуся требованию из каждой.",
-                    "Набросайте 3 пункта о том, как бы вы улучшили знакомый вам процесс.",
-                  ]
-        : signals.q10Jewelry
-          ? [
-              "Save 3 sources about jewelry appraisal and note 2-3 recurring requirements or knowledge areas from each.",
-              "Watch one introductory video from a gemologist or appraiser and write down 2 observations.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Save 3 QA job postings and note which tools and skills appear most often.",
-                "Test one simple feature on a site or app and briefly write down what you checked.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Write down 3 ideas for improving a familiar product, service, or piece of content.",
-                  "Turn one idea into a short textual or visual draft.",
-                ]
-              : signals.q10People
-                ? [
-                    "List 3 organizations or communities that need mentors, coordinators, or helpers.",
-                    "Write a short message explaining how you could be useful in such a role.",
-                  ]
-                : [
-                    "Save 3 job postings and note one recurring requirement from each.",
-                    "Jot down 3 bullet points on how you would improve a process you know.",
-                  ],
-      exploration: isRussian
-        ? signals.q10Jewelry
-          ? [
-              "Найдите интервью с геммологом или оценщиком и посмотрите, как люди входят в эту сферу.",
-              "Посмотрите 2-3 профиля людей из ювелирной экспертизы и отметьте, какое у них образование и опыт.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Посмотрите короткий бесплатный курс по основам тестирования ПО.",
-                "Разберите 2-3 профиля QA-специалистов и посмотрите, что у них общего в начале пути.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Разберите 2-3 сильных проекта в интересующей вас творческой сфере и выпишите, что делает их убедительными.",
-                  "Найдите одно сообщество, где обсуждают эту сферу, и прочитайте несколько популярных обсуждений.",
-                ]
-              : signals.q10People
-                ? [
-                    "Найдите 1-2 программы или сообщества для наставников, координаторов или помощников и посмотрите требования.",
-                    "Прочитайте материал от человека, который уже работает в сфере поддержки или сопровождения людей.",
-                  ]
-                : [
-                    `Проведите 15-минутный разговор с человеком, который работает в роли "${roleExample}". Спросите: "Что самое неожиданное в работе?" и "Какой навык недооценивают новички?"`,
-                    `Проанализируйте 3 профиля "${roleExample}" и выпишите общие элементы в опыте и навыках.`,
-                  ]
-        : signals.q10Jewelry
-          ? [
-              "Find an interview with a gemologist or appraiser and see how people enter this field.",
-              "Review 2-3 profiles of people in jewelry appraisal and note their education and experience.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Watch a short free course on software testing basics.",
-                "Review 2-3 QA profiles and note what they have in common early in their path.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Break down 2-3 strong projects in your creative field of interest and note what makes them convincing.",
-                  "Find one community discussing that field and read a few popular threads.",
-                ]
-              : signals.q10People
-                ? [
-                    "Find 1-2 programs or communities for mentors, coordinators, or helpers and review the requirements.",
-                    "Read a piece written by someone already working in a support or guidance role.",
-                  ]
-                : [
-                    `Conduct a 15-minute conversation with someone working as a "${roleExample}". Ask: "What is the most surprising part of the job?" and "What skill do beginners underestimate?"`,
-                    `Analyze 3 "${roleExample}" profiles and note common patterns in experience and skills.`,
-                  ],
-      validation: isRussian
-        ? signals.q10Jewelry
-          ? [
-              "Попробуйте сделать пробную оценку любого украшения или камня по открытым критериям и запишите ход мыслей.",
-              "Покажите свои заметки в тематическом сообществе или знакомому, который разбирается в теме, и попросите комментарий.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Составьте чек-лист для тестирования простой функции и попросите кого-то оценить его понятность.",
-                "Напишите короткий баг-репорт по найденной проблеме и проверьте, насколько он ясен со стороны.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Оформите одну идею в виде короткой презентации или поста и покажите её 1-2 людям.",
-                  'Спросите: "Что здесь самое сильное, а что пока неубедительно?"',
-                ]
-              : signals.q10People
-                ? [
-                    "Проведите пробное объяснение сложной темы простыми словами другу или коллеге.",
-                    "Попросите обратную связь о том, насколько это было понятно и полезно.",
-                  ]
-                : [
-                    `Создайте короткую мини-презентацию для роли "${roleExample}" и покажите её знакомому или в тематическом чате.`,
-                    'Попросите обратную связь с вопросом: "Что здесь пока самое слабое место?"',
-                  ]
-        : signals.q10Jewelry
-          ? [
-              "Try making a rough appraisal of any piece of jewelry or gemstone using public criteria and write down your reasoning.",
-              "Share your notes with a relevant community or someone knowledgeable and ask for feedback.",
-            ]
-          : signals.q10Testing
-            ? [
-                "Create a checklist for testing a simple feature and ask someone to judge how clear it is.",
-                "Write a short bug report for an issue you found and see whether it is understandable to someone else.",
-              ]
-            : signals.q10Creative
-              ? [
-                  "Turn one idea into a short presentation or post and show it to 1-2 people.",
-                  'Ask: "What feels strongest here, and what still feels weak?"',
-                ]
-              : signals.q10People
-                ? [
-                    "Try explaining a complex topic in simple terms to a friend or colleague.",
-                    "Ask for feedback on how clear and useful the explanation was.",
-                  ]
-                : [
-                    `Create a short mini-presentation for the role "${roleExample}" and share it with someone relevant or in a community.`,
-                    'Ask for feedback with the question: "What feels weakest here so far?"',
-                  ],
-      skillsToDevelop: isRussian
-        ? signals.q10Jewelry
-          ? [
-              {
-                skill: "Базовая геммология",
-                why: "Нужна для понимания свойств камней и критериев оценки.",
-                howToLearn:
-                  "Начните с открытых вводных материалов, видео и коротких статей по основам геммологии.",
-              },
-              {
-                skill: "Навык предметного анализа",
-                why: "Помогает сравнивать признаки, опираться на критерии и делать выводы.",
-                howToLearn:
-                  "Тренируйтесь описывать объекты по признакам и фиксировать, на чём основана оценка.",
-              },
-            ]
-          : signals.q10Testing
-            ? [
-                {
-                  skill: "Основы тестирования ПО",
-                  why: "Это база для понимания логики QA-работы.",
-                  howToLearn:
-                    "Возьмите короткий бесплатный курс по основам QA и терминологии.",
-                },
-                {
-                  skill: "Тест-дизайн и баг-репорты",
-                  why: "Это главный практический навык для реальной работы.",
-                  howToLearn:
-                    "Потренируйтесь составлять чек-листы и описывать найденные проблемы понятным языком.",
-                },
-              ]
-            : signals.q10Creative
-              ? [
-                  {
-                    skill: "Структурирование идей",
-                    why: "Помогает доводить замысел до понятного результата.",
-                    howToLearn:
-                      "Практикуйтесь переводить идеи в короткие концепты, схемы или 2-3 слайда.",
-                  },
-                  {
-                    skill: "Презентация замысла",
-                    why: "Важно уметь объяснить, почему идея работает.",
-                    howToLearn:
-                      "Пробуйте короткие устные или текстовые питчи для друзей и знакомых.",
-                  },
-                ]
-              : signals.q10People
-                ? [
-                    {
-                      skill: "Активное слушание",
-                      why: "Это база для поддержки, наставничества и сопровождения.",
-                      howToLearn:
-                        "Практикуйтесь в разговорах: сначала уточнить, потом пересказать смысл своими словами.",
-                    },
-                    {
-                      skill: "Фасилитация и объяснение",
-                      why: "Помогает удерживать людей в процессе и делать информацию понятной.",
-                      howToLearn:
-                        "Пробуйте объяснять сложные темы коротко и просить обратную связь о ясности.",
-                    },
-                  ]
-                : [
-                    {
-                      skill: "Коммуникация и презентация",
-                      why: "Помогает объяснять идеи, выводы и решения понятным способом.",
-                      howToLearn:
-                        "Запишите 2-минутное объяснение одной идеи и покажите его знакомому.",
-                    },
-                    {
-                      skill: "Аналитическое мышление",
-                      why: "Позволяет видеть закономерности и делать более точные выводы.",
-                      howToLearn:
-                        "Берите простые кейсы и тренируйтесь разбирать, от чего зависит результат.",
-                    },
-                  ]
-        : signals.q10Jewelry
-          ? [
-              {
-                skill: "Basic gemology",
-                why: "It helps you understand stone properties and evaluation criteria.",
-                howToLearn:
-                  "Start with open introductory materials, videos, and short articles on gemology basics.",
-              },
-              {
-                skill: "Object-based analysis",
-                why: "It helps you compare traits, use criteria, and make grounded judgments.",
-                howToLearn:
-                  "Practice describing objects by characteristics and writing down what supports your judgment.",
-              },
-            ]
-          : signals.q10Testing
-            ? [
-                {
-                  skill: "Software testing basics",
-                  why: "This is the foundation for understanding QA work.",
-                  howToLearn:
-                    "Take a short free course on QA basics and terminology.",
-                },
-                {
-                  skill: "Test design and bug reporting",
-                  why: "This is the key practical skill for real testing work.",
-                  howToLearn:
-                    "Practice making checklists and describing issues in clear language.",
-                },
-              ]
-            : signals.q10Creative
-              ? [
-                  {
-                    skill: "Structuring ideas",
-                    why: "It helps you turn ideas into something concrete.",
-                    howToLearn:
-                      "Practice turning ideas into short concepts, sketches, or 2-3 slides.",
-                  },
-                  {
-                    skill: "Presenting ideas",
-                    why: "It matters to explain why an idea works.",
-                    howToLearn:
-                      "Try short spoken or written pitches with friends or peers.",
-                  },
-                ]
-              : signals.q10People
-                ? [
-                    {
-                      skill: "Active listening",
-                      why: "It is foundational for support, mentoring, and guidance.",
-                      howToLearn:
-                        "Practice clarifying first, then restating the meaning in your own words.",
-                    },
-                    {
-                      skill: "Facilitation and explanation",
-                      why: "It helps you support people through a process and make information understandable.",
-                      howToLearn:
-                        "Practice explaining complex topics briefly and ask for feedback on clarity.",
-                    },
-                  ]
-                : [
-                    {
-                      skill: "Communication and presentation",
-                      why: "It helps you explain ideas, conclusions, and decisions clearly.",
-                      howToLearn:
-                        "Record a 2-minute explanation of one idea and show it to someone you trust.",
-                    },
-                    {
-                      skill: "Analytical thinking",
-                      why: "It helps you notice patterns and make sharper judgments.",
-                      howToLearn:
-                        "Take simple cases and practice breaking down what drives the outcome.",
-                    },
-                  ],
-      nextMove: isRussian
-        ? signals.q10Jewelry
-          ? "В течение недели выберите один вводный материал по геммологии и попробуйте применить его к оценке одного реального объекта."
-          : signals.q10Testing
-            ? "В течение недели пройдите один короткий вводный материал по QA и оформите один пробный баг-репорт."
-            : signals.q10Creative
-              ? "В течение недели доведите одну идею до короткого оформленного результата и получите хотя бы один внешний комментарий."
-              : signals.q10People
-                ? "В течение недели найдите одну реальную возможность попробовать себя в роли помощника, наставника или координатора хотя бы в небольшом формате."
-                : "Выберите один небольшой проект и доведите его до законченного результата в течение двух недель."
-        : signals.q10Jewelry
-          ? "Within a week, choose one introductory gemology resource and apply it to evaluating one real object."
-          : signals.q10Testing
-            ? "Within a week, complete one short QA introduction and write one trial bug report."
-            : signals.q10Creative
-              ? "Within a week, take one idea to a short finished format and get at least one external comment on it."
-              : signals.q10People
-                ? "Within a week, find one real opportunity to try a helper, mentor, or coordinator role, even in a small format."
-                : "Choose one small project and bring it to a finished result within two weeks.",
-    },
-    _note: isLowQuality
-      ? isRussian
-        ? "⚠️ Анализ основан на коротких ответах."
-        : "⚠️ Analysis based on short answers."
-      : undefined,
-  };
+          "Try making a rough appraisal of any piece of jewelry or gemstone using public criteria and write down your reasoning.",
+          "Share your notes with a relevant community or someone knowledgeable and ask for feedback.",
+        ];
+  }
+
+  if (track === "testing") {
+    return isRussian
+      ? [
+          "Составьте чек-лист для тестирования простой функции и попросите кого-то оценить, достаточно ли он понятен и полный.",
+          "Напишите короткий баг-репорт по найденной проблеме и проверьте, может ли другой человек воспроизвести её по вашему описанию.",
+        ]
+      : [
+          "Create a checklist for testing a simple feature and ask someone whether it is clear and complete enough.",
+          "Write a short bug report for an issue you found and check whether another person can reproduce it from your description.",
+        ];
+  }
+
+  if (track === "creative") {
+    return isRussian
+      ? [
+          "Оформите одну идею в виде короткой презентации или поста и покажите её 1-2 людям.",
+          'Спросите: "Что здесь самое сильное, а что пока неубедительно?"',
+        ]
+      : [
+          "Turn one idea into a short presentation or post and show it to 1-2 people.",
+          'Ask: "What feels strongest here, and what still feels weak?"',
+        ];
+  }
+
+  if (track === "people") {
+    return isRussian
+      ? [
+          "Проведите пробное объяснение сложной темы простыми словами другу или коллеге.",
+          "Попросите обратную связь о том, насколько это было понятно, полезно и не перегружено.",
+        ]
+      : [
+          "Try explaining a complex topic in simple terms to a friend or colleague.",
+          "Ask for feedback on whether it felt clear, useful, and not overloaded.",
+        ];
+  }
+
+  if (track === "execution") {
+    return isRussian
+      ? [
+          "Возьмите небольшую задачу и разложите её на 5-7 шагов с понятным порядком выполнения и критерием готовности.",
+          "Покажите этот план человеку с опытом в операциях или проектах и спросите: «Где здесь слабое место в логике исполнения?»",
+        ]
+      : [
+          "Take a small task and break it into 5-7 steps with a clear execution order and a definition of done.",
+          'Show that plan to someone with project or operations experience and ask: "Where is the execution logic weakest here?"',
+        ];
+  }
+
+  return isRussian
+    ? [
+        "Возьмите знакомый процесс и опишите его в 5-7 шагах: где возникают сбои, что можно измерить и что стоит улучшить в первую очередь.",
+        "Покажите этот разбор человеку с опытом в операциях, качестве или аналитике и спросите: «Где логика слабая, а где улучшение уже выглядит практичным?»",
+      ]
+    : [
+        "Take a process you know and describe it in 5-7 steps: where it breaks, what can be measured, and what should be improved first.",
+        'Show that breakdown to someone with experience in operations, quality, or analysis and ask: "Where is the logic weak, and where does the improvement already look practical?"',
+      ];
 }
 
 function buildStrongWhyFallback(
@@ -1777,6 +1920,20 @@ function buildStrongWhyFallback(
         ];
   }
 
+   if (signals.hasExecution && signals.likesConcreteOutput) {
+     return isRussian
+       ? [
+           "Тебя заряжает не абстрактное обсуждение, а момент, когда задача начинает реально двигаться к результату.",
+           "Ты лучше всего проявляешься там, где нужно собрать работу в понятный ход и довести её до завершения.",
+           "Для тебя важна не только идея, но и ощущение, что из неё получился практический итог.",
+         ]
+       : [
+           "You are energized less by abstract discussion and more by seeing a task actually move toward completion.",
+           "You do best where work needs to be turned into a clear process and carried through.",
+           "It matters to you not only to have an idea, but to turn it into a practical outcome.",
+         ];
+   }
+
   return isRussian
     ? [
         "Тебе подходит работа, где нужно не просто делать задачу, а улучшать её качество и понятность.",
@@ -1790,9 +1947,146 @@ function buildStrongWhyFallback(
       ];
 }
 
+function buildWorkStyleFallback(
+  language: Language,
+  track: MentraTrack,
+  answers: string[]
+): string {
+  const isRussian = language === "ru";
+  const allText = answers.join(" ").toLowerCase();
+  const q8 = (answers[7] || "").toLowerCase();
+
+  const likesChaos = /хаос|chaos/i.test(q8);
+  const dislikesUncertainty = /неопредел|uncertain/i.test(allText);
+  const wantsAutonomy = /свобод|autonom|freedom|independ/i.test(allText);
+
+  if (track === "jewelry") {
+    return isRussian
+      ? "Работаете вдумчиво и спокойно: сначала собираете признаки, затем сравниваете их по критериям и только после этого делаете вывод. Вам проще показывать сильный результат там, где можно не спешить и опираться на точность."
+      : "You work in a calm and deliberate way: first gathering traits, then comparing them against criteria, and only after that making a judgment. You do your best where precision matters more than speed.";
+  }
+
+  if (track === "testing") {
+    return isRussian
+      ? "Работаете через проверку и уточнение: сначала понимаете логику системы, затем ищете слабые места, граничные случаи и несостыковки. Вам подходит формат, где можно опираться на критерии качества, но при этом самостоятельно выстраивать ход проверки."
+      : "You work through verification and clarification: first understanding the system logic, then looking for weak points, edge cases, and inconsistencies. You do well where quality criteria are clear but the checking process still requires independent thinking.";
+  }
+
+  if (track === "creative") {
+    return isRussian
+      ? "Работаете итеративно: сначала собираете идею в черновую форму, затем структурируете её и проверяете, насколько она выглядит убедительно для других. Вам важна свобода в подаче, но без внутренней рамки идея быстро теряет для вас ценность."
+      : "You work iteratively: first shaping an idea in rough form, then structuring it and testing whether it feels convincing to others. Freedom matters to you, but without an internal frame the idea quickly loses value.";
+  }
+
+  if (track === "people") {
+    return isRussian
+      ? "Работаете через понимание человека и прояснение ситуации: сначала слушаете и уточняете, потом переводите сложное в понятную форму и помогаете двигаться дальше без лишнего давления. Вам лучше подходит спокойный, устойчивый ритм, чем агрессивная суета."
+      : "You work through understanding the person and clarifying the situation: first listening and asking questions, then translating complexity into something clear and helping the person move forward without pressure. A steady, calm rhythm suits you better than aggressive urgency.";
+  }
+
+  if (track === "execution") {
+    return isRussian
+      ? "Работаете через последовательное продвижение: сначала собираете задачу в понятные шаги, затем удерживаете темп и доводите её до результата без лишней суеты. Вам подходит формат, где важны надёжность, завершение и практический итог."
+      : "You work through steady execution: first turning a task into clear steps, then maintaining momentum and carrying it to completion without unnecessary chaos. You fit environments where reliability, follow-through, and practical outcomes matter.";
+  }
+
+  if (likesChaos && !dislikesUncertainty) {
+    return isRussian
+      ? "Вы нормально держитесь в подвижной среде: можете быстро собрать суть задачи, выделить главное и навести порядок в разрозненной информации. При этом лучше всего работаете там, где после первого хаоса всё же можно выйти на ясную логику действий."
+      : "You can function well in fast-moving environments: quickly finding the core of a task, identifying what matters, and imposing order on scattered information. Still, you work best when early chaos eventually gives way to a clear logic of action.";
+  }
+
+  if (wantsAutonomy) {
+    return isRussian
+      ? "Работаете самостоятельно и системно: сначала определяете, что именно является целью, где критерий качества и что мешает результату, а потом двигаетесь к более собранному решению. Вам подходит формат, где есть свобода в способе работы, но понятен ожидаемый итог."
+      : "You work independently and systematically: first defining the goal, the quality bar, and what blocks the result, then moving toward a more coherent solution. You do best where you have freedom in execution but the expected outcome is still clear.";
+  }
+
+  return isRussian
+    ? "Работаете через разбор и упорядочивание: сначала понимаете логику задачи, затем отделяете важное от второстепенного и постепенно улучшаете результат. Вам ближе практический формат, где можно не просто выполнить задачу, а сделать её более надёжной и ясной."
+    : "You work through analysis and structuring: first understanding the task logic, then separating what matters from what does not, and gradually improving the result. A practical format suits you best, where the job is not only to execute but to make the outcome clearer and more reliable.";
+}
+
+function buildMismatchesFallback(
+  language: Language,
+  track: MentraTrack
+): string[] {
+  const isRussian = language === "ru";
+
+  if (track === "jewelry") {
+    return isRussian
+      ? [
+          "Работа, где нужно всё время спешить и принимать выводы без достаточных оснований.",
+          "Среда, где почти нет критериев, стандартов или возможности спокойно сравнивать детали.",
+        ]
+      : [
+          "Work that requires constant speed and snap judgments without enough basis for them.",
+          "An environment with very few criteria, standards, or room for careful comparison.",
+        ];
+  }
+
+  if (track === "testing") {
+    return isRussian
+      ? [
+          "Роли, где от человека ждут только быстрого исполнения без проверки, логики и критериев качества.",
+          "Среда, где ошибки приходится игнорировать ради темпа или внешней видимости результата.",
+        ]
+      : [
+          "Roles where the expectation is pure execution without checking, logic, or quality criteria.",
+          "An environment where issues must be ignored for the sake of speed or appearance.",
+        ];
+  }
+
+  if (track === "creative") {
+    return isRussian
+      ? [
+          "Работа, где нет пространства для собственного подхода и всё сводится к механическому исполнению.",
+          "Среда, где идеи нельзя оформить, показать и довести до заметного результата.",
+        ]
+      : [
+          "Work with no room for your own approach, where everything is reduced to mechanical execution.",
+          "An environment where ideas cannot be shaped, shown, and turned into visible outcomes.",
+        ];
+  }
+
+  if (track === "people") {
+    return isRussian
+      ? [
+          "Роли, где приходится постоянно давить на людей вместо того, чтобы помогать им разбираться и двигаться дальше.",
+          "Среда с холодной коммуникацией, жёсткой конкуренцией и отсутствием доверия.",
+        ]
+      : [
+          "Roles where the job is to pressure people rather than help them understand and move forward.",
+          "An environment built on cold communication, hard competition, and low trust.",
+        ];
+  }
+
+  if (track === "execution") {
+    return isRussian
+      ? [
+          "Среда, где много идей и обсуждений, но почти нет движения к реальному результату.",
+          "Работа, где всё постоянно меняется и невозможно удержать понятный ход выполнения.",
+        ]
+      : [
+          "An environment full of ideas and discussion but with very little movement toward real outcomes.",
+          "Work where everything keeps changing and it is impossible to maintain a clear execution flow.",
+        ];
+  }
+
+  return isRussian
+    ? [
+        "Работа, где нет возможности разбираться в логике процесса и улучшать качество результата.",
+        "Среда с постоянной суетой, размытыми ожиданиями и бессистемными переключениями между задачами.",
+      ]
+    : [
+        "Work with no room to understand process logic or improve the quality of the outcome.",
+        "An environment full of noise, vague expectations, and constant unsystematic task-switching.",
+      ];
+}
+
 function buildStrongSkillsFallback(
   language: Language,
-  track: "jewelry" | "testing" | "creative" | "people" | "general"
+  track: MentraTrack
 ): SkillToDevelop[] {
   const isRussian = language === "ru";
 
@@ -1908,36 +2202,82 @@ function buildStrongSkillsFallback(
         ];
   }
 
+  if (track === "execution") {
+    return isRussian
+      ? [
+          {
+            skill: "Декомпозиция задач",
+            why: "Помогает превращать размытую задачу в последовательный план действий.",
+            howToLearn: "Берите 3 небольшие задачи и расписывайте для каждой шаги, зависимость между ними и критерий завершения.",
+          },
+          {
+            skill: "Контроль хода выполнения",
+            why: "Нужен, чтобы замечать, где задача застревает, и вовремя возвращать её в движение.",
+            howToLearn: "Ведите короткий трекер: что сделано, что блокирует следующий шаг, что нужно решить сегодня.",
+          },
+          {
+            skill: "Статусная коммуникация",
+            why: "Важно не только делать задачу, но и ясно показывать другим, где вы находитесь и что нужно дальше.",
+            howToLearn: "Пишите короткие апдейты по схеме: сделано, в работе, риск, следующий шаг.",
+          },
+        ]
+      : [
+          {
+            skill: "Task decomposition",
+            why: "It helps turn a vague task into an ordered plan of action.",
+            howToLearn: "Take 3 small tasks and write out the steps, dependencies, and definition of done for each.",
+          },
+          {
+            skill: "Execution tracking",
+            why: "It helps you notice where work gets stuck and bring it back into motion in time.",
+            howToLearn: "Keep a short tracker: what is done, what blocks the next step, and what must be resolved today.",
+          },
+          {
+            skill: "Status communication",
+            why: "It matters not only to do the work, but also to show clearly where things stand and what is needed next.",
+            howToLearn: "Practice writing short updates using: done, in progress, risk, next step.",
+          },
+        ];
+  }
+
   return isRussian
     ? [
         {
-          skill: "Анализ задач",
-          why: "Помогает быстрее видеть, что в задаче главное, а что вторично.",
-          howToLearn: "Разберите 3 знакомые задачи по схеме: цель, ограничение, критерий качества.",
+          skill: "Диагностика процессов",
+          why: "Помогает видеть, где именно система даёт сбой, а не просто замечать, что результат слабый.",
+          howToLearn: "Возьмите 2-3 знакомых процесса и для каждого выпишите: шаги, узкие места, повторяющиеся ошибки и возможную причину сбоя.",
         },
         {
-          skill: "Ясная коммуникация",
-          why: "Нужна, чтобы доносить идеи, выводы и замечания без путаницы.",
-          howToLearn: "Тренируйтесь кратко объяснять одно решение за 1-2 минуты и получать обратную связь.",
+          skill: "Формулирование критериев качества",
+          why: "Нужно, чтобы оценивать результат не по ощущению, а по понятным признакам и ожиданиям.",
+          howToLearn: "Для трёх типовых задач пропишите, по каким признакам вы поймёте, что работа сделана хорошо, средне или плохо.",
+        },
+        {
+          skill: "Ясное объяснение выводов",
+          why: "Полезно, когда нужно не только заметить проблему, но и убедительно показать, в чём она и что стоит менять.",
+          howToLearn: "Потренируйтесь коротко объяснять один найденный сбой по схеме: проблема, причина, риск, следующее действие.",
         },
       ]
     : [
         {
-          skill: "Task analysis",
-          why: "It helps you see faster what matters most in a task and what is secondary.",
-          howToLearn: "Break down 3 familiar tasks into: goal, constraint, and quality criterion.",
+          skill: "Process diagnosis",
+          why: "It helps you see where a system actually breaks instead of only noticing that the outcome is weak.",
+          howToLearn: "Take 2-3 processes you know and list for each one: steps, bottlenecks, recurring errors, and the likely cause of failure.",
         },
         {
-          skill: "Clear communication",
-          why: "It helps you explain ideas, conclusions, and concerns without confusion.",
-          howToLearn: "Practice explaining one decision in 1-2 minutes and ask for feedback on clarity.",
+          skill: "Defining quality criteria",
+          why: "It helps you evaluate outcomes through clear signals and expectations rather than vague impressions.",
+          howToLearn: "For three typical tasks, define what would count as a strong, average, or weak result.",
+        },
+        {
+          skill: "Explaining findings clearly",
+          why: "It matters when you need not only to spot a problem, but also to show what is wrong and what should change.",
+          howToLearn: "Practice explaining one issue using this structure: problem, cause, risk, next action.",
         },
       ];
 }
 
-function inferTrackFromRoles(
-  roles: BestFitRole[]
-): "jewelry" | "testing" | "creative" | "people" | "general" {
+function inferTrackFromRoles(roles: BestFitRole[]): MentraTrack {
   const text = roles
     .map((r) => `${r.role} ${r.explanation}`)
     .join(" ")
@@ -1959,6 +2299,10 @@ function inferTrackFromRoles(
     return "people";
   }
 
+  if (/operations|executor|execution|project coordinator|операцион|координатор проектов|исполн|выполн/.test(text)) {
+    return "execution";
+  }
+
   return "general";
 }
 
@@ -1970,16 +2314,32 @@ function buildRoleAlignedFallback(
 ): MentraResponse {
   const isRussian = language === "ru";
   const track = inferTrackFromRoles(roles);
-
   const signals = extractSignals(answers);
 
-  const patchedSignals = {
-    ...signals,
-    q10Jewelry: track === "jewelry",
-    q10Testing: track === "testing",
-    q10Creative: track === "creative",
-    q10People: track === "people",
-  };
+  const patchedSignals =
+    track === "general"
+      ? {
+          ...signals,
+          q10Jewelry: false,
+          q10Testing: false,
+          q10Creative: false,
+          q10People: false,
+          hasExecution: false,
+          likesConcreteOutput: false,
+          hasPeople: false,
+          likesExplaining: false,
+          hasCreate: false,
+          hasAutonomy: false,
+        }
+      : {
+          ...signals,
+          q10Jewelry: track === "jewelry",
+          q10Testing: track === "testing",
+          q10Creative: track === "creative",
+          q10People: track === "people",
+          hasExecution: track === "execution",
+          likesConcreteOutput: track === "execution",
+        };
 
   const fallback = buildFallbackResponse(language, answersQuality, patchedSignals);
   fallback.bestFitRoles = roles;
@@ -1991,6 +2351,10 @@ function buildRoleAlignedFallback(
   );
 
   fallback.whyThisResult = buildStrongWhyFallback(language, patchedSignals);
+  fallback.workStyle = buildWorkStyleFallback(language, track, answers);
+  fallback.potentialMismatches = buildMismatchesFallback(language, track);
+  fallback.actionPlan.validation = buildValidationFallback(language, track);
+  fallback.actionPlan.skillsToDevelop = buildStrongSkillsFallback(language, track);
 
   return fallback;
 }
@@ -2020,6 +2384,13 @@ function generateSmartFallback(
   );
 
   result.whyThisResult = buildStrongWhyFallback(language, signals);
+
+  const track = inferTrackFromRoles(result.bestFitRoles);
+
+  result.workStyle = buildWorkStyleFallback(language, track, answers);
+  result.potentialMismatches = buildMismatchesFallback(language, track);
+  result.actionPlan.validation = buildValidationFallback(language, track);
+  result.actionPlan.skillsToDevelop = buildStrongSkillsFallback(language, track);
 
   return result;
 }
@@ -2053,7 +2424,7 @@ async function callGroq(
         },
         { role: "user", content: overridePrompt ?? prompt },
       ],
-      temperature: 0.9,
+      temperature: 0.4,
       max_tokens: 3000,
     });
 
@@ -2103,7 +2474,7 @@ async function callDeepSeek(
         },
         { role: "user", content: overridePrompt ?? prompt },
       ],
-      temperature: 0.9,
+      temperature: 0.4,
       max_tokens: 3000,
     });
 
@@ -2117,6 +2488,107 @@ async function callDeepSeek(
     return { result: result as MentraRawResult, isLowQuality };
   } catch (error: unknown) {
     console.error("❌ DeepSeek failed:", error);
+    return null;
+  }
+}
+
+async function callGroqReview(
+  prompt: string,
+  isRussian: boolean
+): Promise<ReviewResult | null> {
+  if (!process.env.GROQ_API_KEY) return null;
+
+  try {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [
+        {
+          role: "system",
+          content: isRussian ? REVIEW_SYSTEM_PROMPT_RU : REVIEW_SYSTEM_PROMPT_EN,
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const jsonStr = content.replace(/```json\s*|\s*```/g, "").trim();
+    const parsed = JSON.parse(jsonStr) as {
+      verdict?: unknown;
+      issues?: unknown;
+    };
+
+    const verdict =
+      parsed.verdict === "accept" ||
+      parsed.verdict === "revise" ||
+      parsed.verdict === "fallback"
+        ? parsed.verdict
+        : "revise";
+
+    const issues = Array.isArray(parsed.issues)
+      ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
+      : [];
+
+    return { verdict, issues };
+  } catch (error) {
+    console.error("❌ Groq review failed:", error);
+    return null;
+  }
+}
+
+async function callDeepSeekReview(
+  prompt: string,
+  isRussian: boolean
+): Promise<ReviewResult | null> {
+  if (!process.env.DEEPSEEK_API_KEY) return null;
+
+  try {
+    const deepseek = new OpenAI({
+      baseURL: "https://api.deepseek.com",
+      apiKey: process.env.DEEPSEEK_API_KEY,
+    });
+
+    const response = await deepseek.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [
+        {
+          role: "system",
+          content: isRussian ? REVIEW_SYSTEM_PROMPT_RU : REVIEW_SYSTEM_PROMPT_EN,
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const jsonStr = content.replace(/```json\s*|\s*```/g, "").trim();
+    const parsed = JSON.parse(jsonStr) as {
+      verdict?: unknown;
+      issues?: unknown;
+    };
+
+    const verdict =
+      parsed.verdict === "accept" ||
+      parsed.verdict === "revise" ||
+      parsed.verdict === "fallback"
+        ? parsed.verdict
+        : "revise";
+
+    const issues = Array.isArray(parsed.issues)
+      ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
+      : [];
+
+    return { verdict, issues };
+  } catch (error) {
+    console.error("❌ DeepSeek review failed:", error);
     return null;
   }
 }
@@ -2150,75 +2622,16 @@ async function reviewWithProvider(
   answers: string[],
   language: Language,
   candidate: MentraResponse,
-  isRussian: boolean,
-  answersQuality: AnswersQualitySummary
+  isRussian: boolean
 ): Promise<ReviewResult | null> {
   const reviewPrompt = buildReviewPrompt(answers, language, candidate);
 
   if (provider === "groq") {
-    const reviewed = await callGroq(
-      reviewPrompt,
-      isRussian,
-      answersQuality
-    );
-
-    if (!reviewed) return null;
-
-    try {
-      const normalizedJson = JSON.stringify(reviewed.result);
-      const parsed = JSON.parse(normalizedJson) as {
-        verdict?: unknown;
-        issues?: unknown;
-      };
-
-      const verdict =
-        parsed.verdict === "accept" ||
-        parsed.verdict === "revise" ||
-        parsed.verdict === "fallback"
-          ? parsed.verdict
-          : "revise";
-
-      const issues = Array.isArray(parsed.issues)
-        ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
-        : [];
-
-      return { verdict, issues };
-    } catch {
-      return null;
-    }
+    return callGroqReview(reviewPrompt, isRussian);
   }
 
   if (provider === "deepseek") {
-    const reviewed = await callDeepSeek(
-      reviewPrompt,
-      isRussian,
-      answersQuality
-    );
-
-    if (!reviewed) return null;
-
-    try {
-      const normalizedJson = JSON.stringify(reviewed.result);
-      const parsed = JSON.parse(normalizedJson) as {
-        verdict?: unknown;
-        issues?: unknown;
-      };
-
-      const verdict =
-        parsed.verdict === "accept" ||
-        parsed.verdict === "revise" ||
-        parsed.verdict === "fallback"
-          ? parsed.verdict
-          : "revise";
-
-      const issues = Array.isArray(parsed.issues)
-        ? parsed.issues.map((x) => cleanText(x, { maxLength: 220 })).filter(Boolean)
-        : [];
-
-      return { verdict, issues };
-    } catch {
-      return null;
-    }
+    return callDeepSeekReview(reviewPrompt, isRussian);
   }
 
   return null;
@@ -2254,6 +2667,59 @@ function mergeRoles(
   return merged.slice(0, maxItems);
 }
 
+function mergeUniqueStrings(
+  primary: string[],
+  secondary: string[],
+  maxItems: number
+): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const item of [...primary, ...secondary]) {
+    const key = normalizeText(item).toLowerCase();
+    if (!key || seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(item);
+
+    if (result.length >= maxItems) break;
+  }
+
+  return result;
+}
+
+function mergeSkills(
+  primary: SkillToDevelop[],
+  secondary: SkillToDevelop[],
+  maxItems: number
+): SkillToDevelop[] {
+  const result: SkillToDevelop[] = [];
+  const seen = new Set<string>();
+
+  for (const item of [...primary, ...secondary]) {
+    const key = normalizeText(item.skill).toLowerCase();
+    if (!key || seen.has(key)) continue;
+
+    seen.add(key);
+    result.push(item);
+
+    if (result.length >= maxItems) break;
+  }
+
+  return result;
+}
+
+function preferModelText(
+  modelText: string,
+  fallbackText: string,
+  isWeak: (text: string) => boolean
+): string {
+  if (!normalizeText(modelText)) return fallbackText;
+  if (isWeak(modelText)) return fallbackText;
+
+  return modelText;
+}
+
 function normalizeRoleTitle(role: string, isRussian: boolean): string {
   return normalizeRoleTitleStrict(role, isRussian);
 }
@@ -2274,8 +2740,6 @@ function isTooBroadRole(role: string): boolean {
     "исследователь",
     "leader",
     "лидер",
-    "manager",
-    "менеджер",
   ].some((pattern) => lower === pattern || lower.includes(pattern));
 }
 
@@ -2328,6 +2792,88 @@ function dedupeRoles(roles: BestFitRole[]): BestFitRole[] {
   return result;
 }
 
+function polishFinalResult(
+  result: MentraResponse,
+  smartFallback: MentraResponse,
+  language: Language,
+  answers: string[]
+): MentraResponse {
+  const track = inferTrackFromRoles(result.bestFitRoles);
+
+  result.whyThisResult = mergeUniqueStrings(
+    result.whyThisResult.filter((item) => !isWeakWhy(item)),
+    smartFallback.whyThisResult,
+    3
+  );
+
+  result.keyStrengths = mergeUniqueStrings(
+    result.keyStrengths.filter((item) => !isWeakStrength(item)),
+    smartFallback.keyStrengths,
+    3
+  );
+
+  result.actionPlan.validation = mergeUniqueStrings(
+    result.actionPlan.validation.filter((item) => !isWeakValidation(item)),
+    buildValidationFallback(language, track),
+    2
+  );
+
+  result.actionPlan.skillsToDevelop =
+    result.actionPlan.skillsToDevelop.filter(
+      (item) => !isWeakSkillItem(item)
+    ).length >= 2
+      ? result.actionPlan.skillsToDevelop.filter(
+          (item) => !isWeakSkillItem(item)
+        ).slice(0, 3)
+      : buildStrongSkillsFallback(language, track);
+
+  result.workStyle = preferModelText(
+    result.workStyle,
+    buildWorkStyleFallback(language, track, answers),
+    isWeakWorkStyle
+  );
+
+  result.potentialMismatches = mergeUniqueStrings(
+    result.potentialMismatches.filter((item) => !isWeakMismatch(item)),
+    buildMismatchesFallback(language, track),
+    2
+  );
+
+  result.recommendedNextStep = preferModelText(
+    result.recommendedNextStep,
+    smartFallback.recommendedNextStep,
+    isWeakRecommendedNextStep
+  );
+
+  result.actionPlan.nextMove = preferModelText(
+    result.actionPlan.nextMove,
+    smartFallback.actionPlan.nextMove,
+    isWeakNextMove
+  );
+
+  return result;
+}
+
+function containsForbiddenPatterns(raw: MentraRawResult): boolean {
+  const text = JSON.stringify(raw).toLowerCase();
+
+  const forbidden = [
+    "пройти курс",
+    "take a course",
+    "talk to professionals",
+    "поговорить с профессионалами",
+    "подать заявку",
+    "apply for jobs",
+    "flexible leader",
+    "флексибельный лидер",
+    "analytical kontrol",
+    "несpecific",
+    "career consultant"
+  ];
+
+  return forbidden.some(p => text.includes(p));
+}
+
 function normalizeModelResult(
   rawResult: MentraRawResult,
   smartFallback: MentraResponse,
@@ -2364,21 +2910,20 @@ function normalizeModelResult(
       fallback: smartFallback.workStyle,
     }),
     bestFitRoles: Array.isArray(rawResult.bestFitRoles)
-      ? dedupeRoles(
-          rawResult.bestFitRoles
-            .map((item: unknown) => {
-              const roleItem = item as { role?: unknown; explanation?: unknown };
-
-              return {
-                role: normalizeRoleTitle(
-                  cleanText(roleItem?.role, { maxLength: 100 }),
-                  isRussian
-                ),
-                explanation: cleanText(roleItem?.explanation, { maxLength: 300 }),
-              };
-            })
-            .filter((item) => item.role && item.explanation)
-        ).slice(0, 3)
+      ? rawResult.bestFitRoles
+          .map((item: unknown) => {
+            const roleItem = item as { role?: unknown; explanation?: unknown };
+            return {
+              role: normalizeRoleTitle(
+                cleanText(roleItem?.role, { maxLength: 100 }),
+                isRussian
+              ),
+              explanation: cleanText(roleItem?.explanation, { maxLength: 300 }),
+            };
+          })
+          .filter((item) => item.role && item.explanation)
+          .filter((item) => !isWeakRoleExplanation(item.explanation))
+          .slice(0, 3)
       : [],
     potentialMismatches: cleanList(rawResult.potentialMismatches, {
       maxItems: 2,
@@ -2430,18 +2975,22 @@ function normalizeModelResult(
     _note: smartFallback._note,
   };
 
-    normalized.whyThisResult = filterRegurgitation(
+    const cleanedWhy = filterRegurgitation(
       normalized.whyThisResult,
       answers
     ).filter((item) => !isWeakWhy(item));
 
-  if (normalized.whyThisResult.length < 3) {
-    normalized.whyThisResult = smartFallback.whyThisResult;
-  }
+    normalized.whyThisResult = mergeUniqueStrings(
+      cleanedWhy,
+      smartFallback.whyThisResult,
+      3
+    );
 
-  if (normalized.keyStrengths.length < 2) {
-    normalized.keyStrengths = smartFallback.keyStrengths;
-  }
+    normalized.keyStrengths = mergeUniqueStrings(
+      normalized.keyStrengths,
+      smartFallback.keyStrengths,
+      3
+    );
 
   if (!normalized.bestFitRoles.length) {
     normalized.bestFitRoles = smartFallback.bestFitRoles;
@@ -2457,6 +3006,8 @@ function normalizeModelResult(
     answers[9] || ""
   );
 
+  normalized.bestFitRoles = dedupeRoles(normalized.bestFitRoles).slice(0, 3);
+
     const roleAlignedFallback = buildRoleAlignedFallback(
       language,
       answers,
@@ -2464,64 +3015,91 @@ function normalizeModelResult(
       normalized.bestFitRoles
     );
 
+// 🔥 ЖЁСТКАЯ ЗАМЕНА слабых блоков
+
+if (
+  normalized.actionPlan.immediate.length < 2 ||
+  normalized.actionPlan.immediate.some(isWeakAction) ||
+  normalized.actionPlan.immediate.some(isVagueAction)
+) {
+  normalized.actionPlan.immediate = roleAlignedFallback.actionPlan.immediate;
+}
+
+if (isWeakRecommendedNextStep(normalized.recommendedNextStep)) {
+  normalized.recommendedNextStep = roleAlignedFallback.recommendedNextStep;
+}
+
+if (isWeakNextMove(normalized.actionPlan.nextMove)) {
+  normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
+}
+
         const inferredTrack = inferTrackFromRoles(normalized.bestFitRoles);
         const strongSkillsFallback = buildStrongSkillsFallback(language, inferredTrack);
+        const strongValidationFallback = buildValidationFallback(language, inferredTrack);
+        const strongWorkStyleFallback = buildWorkStyleFallback(language, inferredTrack, answers);
+        const strongMismatchesFallback = buildMismatchesFallback(language, inferredTrack);
 
-      normalized.actionPlan.validation = normalized.actionPlan.validation.filter(
-        (item) => !isWeakValidation(item)
-      );
+        normalized.profileSummary = preferModelText(
+          normalized.profileSummary,
+          smartFallback.profileSummary,
+          isWeakProfileSummary
+        );
 
-     if (normalized.actionPlan.validation.length < 2) {
-       normalized.actionPlan.validation = roleAlignedFallback.actionPlan.validation;
-     }
+        normalized.workStyle = preferModelText(
+          normalized.workStyle,
+          strongWorkStyleFallback,
+          isWeakWorkStyle
+        );
 
-  if (!normalized.potentialMismatches.length) {
-    normalized.potentialMismatches = roleAlignedFallback.potentialMismatches;
-  }
+        if (
+          normalized.potentialMismatches.length < 2 ||
+          normalized.potentialMismatches.some(isWeakMismatch)
+        ) {
+          normalized.potentialMismatches = mergeUniqueStrings(
+            normalized.potentialMismatches,
+            strongMismatchesFallback,
+            2
+          );
+        }
 
-    if (!normalized.actionPlan.immediate.length) {
-      normalized.actionPlan.immediate = roleAlignedFallback.actionPlan.immediate;
-    }
+        const cleanedValidation = normalized.actionPlan.validation.filter(
+          (item) => !isWeakValidation(item)
+        );
 
-    if (!normalized.actionPlan.exploration.length) {
-      normalized.actionPlan.exploration = roleAlignedFallback.actionPlan.exploration;
-    }
+        normalized.actionPlan.validation = mergeUniqueStrings(
+          cleanedValidation,
+          strongValidationFallback,
+          2
+        );
 
-    if (!normalized.actionPlan.validation.length) {
-      normalized.actionPlan.validation = roleAlignedFallback.actionPlan.validation;
-    }
+        if (!normalized.actionPlan.immediate.length) {
+          normalized.actionPlan.immediate = roleAlignedFallback.actionPlan.immediate;
+        }
 
-    if (!normalized.actionPlan.skillsToDevelop.length) {
-      normalized.actionPlan.skillsToDevelop = strongSkillsFallback;
-    }
+        if (!normalized.actionPlan.exploration.length) {
+          normalized.actionPlan.exploration = roleAlignedFallback.actionPlan.exploration;
+        }
 
-    const weakSkillsCount = normalized.actionPlan.skillsToDevelop.filter(
-      (item) => isWeakStrength(item.skill)
-    ).length;
+        const cleanedSkills = normalized.actionPlan.skillsToDevelop.filter(
+          (item) => !isWeakSkillItem(item)
+        );
 
-    if (weakSkillsCount > 0) {
-      normalized.actionPlan.skillsToDevelop = strongSkillsFallback;
-    }
+        normalized.actionPlan.skillsToDevelop =
+          cleanedSkills.length >= 2
+            ? cleanedSkills.slice(0, 3)
+            : strongSkillsFallback;
 
-    if (!normalized.actionPlan.nextMove) {
-      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
-    }
+        normalized.actionPlan.nextMove = preferModelText(
+          normalized.actionPlan.nextMove,
+          roleAlignedFallback.actionPlan.nextMove,
+          isWeakNextMove
+        );
 
-    if (!normalized.actionPlan.nextMove) {
-      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
-    }
-
-    if (isWeakNextMove(normalized.actionPlan.nextMove)) {
-      normalized.actionPlan.nextMove = roleAlignedFallback.actionPlan.nextMove;
-    }
-
-      if (!normalized.recommendedNextStep) {
-        normalized.recommendedNextStep = roleAlignedFallback.recommendedNextStep;
-      }
-
-      if (isWeakRecommendedNextStep(normalized.recommendedNextStep)) {
-        normalized.recommendedNextStep = roleAlignedFallback.recommendedNextStep;
-      }
+        normalized.recommendedNextStep = preferModelText(
+          normalized.recommendedNextStep,
+          roleAlignedFallback.recommendedNextStep,
+          isWeakRecommendedNextStep
+        );
 
   if (!normalized.profileType) {
     normalized.profileType = isRussian
@@ -2529,14 +3107,21 @@ function normalizeModelResult(
       : "Practical Generalist";
   }
 
-  normalized.profileSummary = injectTension(
-    normalized.profileSummary,
+  const polished = polishFinalResult(
+    normalized,
+    smartFallback,
+    language,
+    answers
+  );
+
+  polished.profileSummary = injectTension(
+    polished.profileSummary,
     answers,
     isRussian
   );
 
-  return normalized;
-}
+  return polished;
+  }
 
 export async function POST(req: NextRequest) {
   try {
@@ -2589,8 +3174,13 @@ export async function POST(req: NextRequest) {
 
     const groqResponse = await callGroq(prompt, isRussian, answersQuality);
     if (groqResponse) {
-      rawResult = groqResponse.result;
-      provider = "groq";
+      if (containsForbiddenPatterns(groqResponse.result)) {
+        rawResult = null;
+        provider = "fallback";
+      } else {
+        rawResult = groqResponse.result;
+        provider = "groq";
+      }
     }
 
     if (!rawResult) {
@@ -2648,8 +3238,7 @@ export async function POST(req: NextRequest) {
             answers,
             language,
             finalResult,
-            isRussian,
-            answersQuality
+            isRussian
           );
 
           if (process.env.NODE_ENV !== "production") {
@@ -2660,10 +3249,7 @@ export async function POST(req: NextRequest) {
             finalResult = smartFallback;
             qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
             provider = "fallback";
-          } else if (
-            review?.verdict === "revise" &&
-            provider !== "fallback"
-          ) {
+          } else if (review?.verdict === "revise") {
             const revisionReasons =
               review.issues.length > 0
                 ? [...qualityCheck.reasons, ...review.issues]
@@ -2704,16 +3290,6 @@ export async function POST(req: NextRequest) {
         if (qualityCheck.score < 70) {
           console.log(
             `⚠️ Still low quality after review/regenerate (${qualityCheck.score}). Falling back.`
-          );
-
-          finalResult = smartFallback;
-          qualityCheck = scoreAnalysisResult(finalResult, answers, isRussian);
-          provider = "fallback";
-        }
-
-        if (qualityCheck.score < 70) {
-          console.log(
-            `⚠️ Still low quality after regenerate (${qualityCheck.score}). Falling back.`
           );
 
           finalResult = smartFallback;
